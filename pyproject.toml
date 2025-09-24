@@ -1,0 +1,5 @@
+[project]
+name = "fmri-edm-ccm"
+version = "0.0.1"
+requires-python = ">=3.10"
+description = "EDM/CCM fMRI decoding - scaffold + Day-1 exploration"

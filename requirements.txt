@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+
+# optional
+librosa
+soundfile
+textgrid
