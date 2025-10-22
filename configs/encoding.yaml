@@ -1,0 +1,11 @@
+ridge_alpha: 10.0
+encoder_model: ridge  # options: ridge | smap | simplex
+use_selected_features: false
+selection_scope: global  # options: global | parcel
+tr_seconds: 2.0
+lag_bank_tr: [-4, -3, -2, -1, 0, 1, 2]
+pca_semantics: false
+n_pca_semantics: 128
+save_artifacts: true
+artifacts_root: derivatives/encoding
+float_dtype: float32

@@ -1,68 +1,52 @@
-from pathlib import Path
+from __future__ import annotations
+
+import csv
+import os
 import re
-from typing import Dict, Iterable, List, Optional, Union
+from pathlib import Path
+from typing import Dict, List
+
+DATA_ROOT = Path(os.environ.get("DS003020_ROOT", "/bucket/PaoU/seann/openneuro/ds003020"))
 
 
-def _require_directory(path: Path) -> Path:
+def _require_subject(sub: str) -> Path:
+    path = DATA_ROOT / sub
     if not path.exists():
-        raise FileNotFoundError(f"Expected directory does not exist: {path}")
-    if not path.is_dir():
-        raise NotADirectoryError(f"Expected directory but found file: {path}")
+        raise FileNotFoundError(f"Subject directory not found: {path}")
     return path
 
 
-def list_subjects(data_root: Union[str, Path]) -> List[str]:
-    base = _require_directory(Path(data_root))
-    return sorted(d.name for d in base.glob("sub-*") if d.is_dir())
+def list_stories_for_subject(sub: str) -> List[str]:
+    subject_dir = _require_subject(sub)
+    stories: set[str] = set()
+    pattern = re.compile(r"task-([A-Za-z0-9]+)")
+    for bold_path in subject_dir.glob("ses-*/func/*_bold.nii.gz"):
+        match = pattern.search(bold_path.name)
+        if match:
+            stories.add(match.group(1))
+    return sorted(stories)
 
 
-def _story_id_from_path(path: Path) -> Optional[str]:
-    match = re.search(r"task-([a-zA-Z0-9]+)", path.name)
-    if not match:
-        return None
-    return match.group(1).lower()
+def _load_tsv(path: Path) -> List[Dict[str, float]]:
+    with path.open("r", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh, delimiter="	")
+        rows: List[Dict[str, float]] = []
+        for row in reader:
+            rows.append({k: float(v) if v not in ("", None) else float("nan") for k, v in row.items()})
+        return rows
 
 
-def _iter_story_runs(subject_dir: Path) -> Iterable[Path]:
-    # Functional runs are stored under ses-*/func/ as BOLD NIfTI files.
-    return subject_dir.glob("ses-*/func/*_bold.nii.gz")
-
-
-def list_stories_for_subject(data_root: Union[str, Path], subject: str) -> List[Dict]:
-    root = _require_directory(Path(data_root))
-    subject_dir = _require_directory(root / subject)
-    stimuli_dir = root / "stimuli"
-    textgrid_dir = root / "derivative" / "TextGrids"
-
-    stories: List[Dict] = []
-    for run_path in _iter_story_runs(subject_dir):
-        story_id = _story_id_from_path(run_path)
-        if story_id is None:
-            continue
-
-        wav_path = stimuli_dir / f"{story_id}.wav"
-        if not wav_path.exists():
-            # Skip localizer or other tasks without matching audio.
-            continue
-
-        textgrid_path = stimuli_dir / f"{story_id}.TextGrid"
-        if not textgrid_path.exists() and textgrid_dir.exists():
-            textgrid_path = textgrid_dir / f"{story_id}.TextGrid"
-        run_id = None
-        run_match = re.search(r"_run-([0-9]+)", run_path.name)
-        if run_match:
-            run_id = run_match.group(1)
-
-        stories.append(
-            {
-                "subject": subject,
-                "session": run_path.parents[1].name,
-                "run": run_id,
-                "story_id": story_id,
-                "bold": str(run_path),
-                "wav": str(wav_path),
-                "textgrid": str(textgrid_path) if textgrid_path.exists() else None,
+def load_story_boundaries(sub: str, story: str) -> Dict:
+    candidates = [
+        DATA_ROOT / "derivatives" / "boundaries" / f"{sub}_{story}.tsv",
+        DATA_ROOT / "stimuli" / f"{story}_boundaries.tsv",
+    ]
+    for path in candidates:
+        if path.exists():
+            return {
+                "subject": sub,
+                "story": story,
+                "boundaries": _load_tsv(path),
+                "source": str(path),
             }
-        )
-
-    return stories
+    return {"subject": sub, "story": story, "boundaries": [], "source": None}

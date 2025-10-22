@@ -1,0 +1,15 @@
+mode: global_parcel_voxel
+D_cap: 6
+theiler_min: 3
+p_lib_sizes: [10, 20, 40, 60, 80]
+K0_prefilter: 512
+K_parcel: 256
+per_parcel_rep_voxels: 30
+per_voxel_k: 64
+bootstrap_repeats: 20
+keep_if_freq_ge: 0.6
+parcel_scheme: schaefer-400
+assign_mode: parcel_union_cap
+outputs_root: derivatives/selection
+random_seed: 42
+float_dtype: float32

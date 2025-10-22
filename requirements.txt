@@ -1,8 +1,10 @@
 numpy
 pandas
 matplotlib
+ipywidgets>=8.0
 
 # optional
 librosa
 soundfile
 textgrid
+gensim

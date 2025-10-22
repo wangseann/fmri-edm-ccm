@@ -4,3 +4,13 @@ pycache/
 .env
 derivatives/
 runs/
+features/
+features1/
+features_no_fallback/
+data_cache/
+embeddings/
+figs/
+misc/
+parcellations/
+results/
+

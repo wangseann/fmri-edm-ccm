@@ -2,7 +2,15 @@
 name = "fmri-edm-ccm"
 version = "0.0.1"
 requires-python = ">=3.10"
-description = "EDM/CCM fMRI decoding - scaffold + Day-1 exploration"
+description = "EDM/CCM fMRI decoding demo"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "matplotlib",
+    "pyyaml",
+    "ipywidgets>=8.0",
+]
 
 [tool.black]
 line-length = 150

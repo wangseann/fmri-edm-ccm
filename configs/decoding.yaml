@@ -1,0 +1,16 @@
+lm_name: gpt2
+beam_size: 8
+topk_next: 16
+max_tokens_per_window: 40
+scoring: corr  # options: corr | cca
+cca_components: 5
+voxel_mask:
+  mode: topK_global  # options: topK_global | topk_per_parcel
+  K_global: 2000
+  k_per_parcel: 100
+mask_weights:
+  enc_val_r2: 0.6
+  parcel_mde: 0.3
+  voxel_stability: 0.1
+artifacts_root: derivatives/decoding
+float_dtype: float32

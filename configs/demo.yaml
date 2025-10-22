@@ -1,0 +1,138 @@
+subject: UTS01
+story: wheretheressmoke
+TR: 2.0
+delta:
+- 1
+- 2
+tau: 1
+E_grid:
+- 3
+- 4
+- 5
+k_grid:
+- 10
+- 15
+- 20
+- 25
+theta_grid:
+- 0.0
+- 0.4
+- 0.8
+- 1.2
+pca_components: 128
+n_parcels: 400
+nIC: 50
+shortlist_topk: 10
+theiler_min: 3
+lib_sizes:
+- 80
+- 120
+- 160
+paths:
+  data_root: /bucket/PaoU/seann/openneuro/ds003020
+  cache: data_cache
+  results: results
+  figs: figs
+  atlas_root: parcellations/Parcellations/MNI
+  atlas_file: parcellations/Parcellations/MNI/Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.nii.gz
+E_univ: 3
+E_mult: 4
+simplex_k: 15
+smap_theta: 0.8
+decoding:
+  tr_seconds: 2.0
+  window_len_tr: 6
+  stride_tr: 3
+  hrf_shift_tr: 0
+  alpha_encoding: 0.6
+  beam_size: 5
+  topk_next: 10
+  max_tokens_per_window: 25
+  lm_name: gpt2
+  use_topk_pcs: 5
+  encoding_space: PC
+  pc_score_method: mean
+  roi_score_method: mean
+  roi_encoding_reg: 1.0
+  cca_components: 5
+  seeds:
+  - 0
+  - 1
+  - 2
+  eval_story_split: test
+  target_type: pcs
+  target_basis_for_selection: embedding
+  selection_val_windows: 40
+  selection_metric: cca_mean
+  selection_cca_components: 3
+  selection_every_k_steps: 1
+  selection_timeout_s: null
+  weights:
+    embedding: 1.0
+    categories: 0.0
+    roi: 0.0
+categories:
+  embedding_source: english1000
+  word2vec_path: ''
+  cluster_csv_path: configs/cluster_words.csv
+  concat_all_stories: false
+  category_score_method: similarity
+  overlap_weighting: proportional
+  allow_single_seed: false
+  seconds_bin_width: 0.05
+  temporal_weighting: proportional
+  prototype_weight_power: 1.0
+  expansion:
+    enabled: true
+    top_k: 2000
+    min_sim: 0.35
+  sets:
+    basic_semantics:
+      inanimate:
+        seeds:
+        - rock
+        - table
+        - cup
+        - chair
+      animate:
+        seeds:
+        - man
+        - woman
+        - dog
+        - child
+      place:
+        seeds:
+        - city
+        - park
+        - room
+        - kitchen
+      tool:
+        seeds:
+        - hammer
+        - knife
+        - saw
+        - scissors
+      motion:
+        seeds:
+        - run
+        - walk
+        - drive
+        - fly
+      emotion_pos:
+        seeds:
+        - happy
+        - joy
+        - delight
+        - pleased
+      emotion_neg:
+        seeds:
+        - sad
+        - angry
+        - fear
+        - disgust
+  fallback:
+    enabled: true
+    model_path: embeddings/GoogleNews-vectors-negative300.bin
+    binary: true
+    transform_path: embeddings/fallback_to_english1000.npz
+    label: word2vec
