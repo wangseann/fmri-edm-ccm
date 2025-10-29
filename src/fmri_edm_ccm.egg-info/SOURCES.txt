@@ -2,9 +2,13 @@ LICENSE
 README.md
 pyproject.toml
 src/__init__.py
+src/align_fallback_embeddings.py
 src/baselines.py
 src/build_story_cache.py
 src/ccm.py
+src/day22_category_mde.py
+src/day24_subject_concat.py
+src/day25_bleed_correction.py
 src/edm.py
 src/edm_ccm.py
 src/features.py
@@ -15,6 +19,13 @@ src/qc_viz.py
 src/roi.py
 src/run_demo.py
 src/utils.py
+src/decoding/__init__.py
+src/decoding/beam_search.py
+src/decoding/encode_score.py
+src/decoding/pc_projector.py
+src/decoding/roi_encoder.py
+src/decoding/text_align.py
+src/decoding/text_eval.py
 src/fmri_edm_ccm.egg-info/PKG-INFO
 src/fmri_edm_ccm.egg-info/SOURCES.txt
 src/fmri_edm_ccm.egg-info/dependency_links.txt

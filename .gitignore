@@ -4,7 +4,7 @@ pycache/
 .env
 derivatives/
 runs/
-features/
+features_*/
 features1/
 features_no_fallback/
 data_cache/
@@ -13,4 +13,5 @@ figs/
 misc/
 parcellations/
 results/
-
+.pre-commit-cache/
+.pytest_cache/

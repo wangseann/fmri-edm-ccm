@@ -9,4 +9,5 @@ Requires-Dist: pandas
 Requires-Dist: scikit-learn
 Requires-Dist: matplotlib
 Requires-Dist: pyyaml
+Requires-Dist: ipywidgets>=8.0
 Dynamic: license-file

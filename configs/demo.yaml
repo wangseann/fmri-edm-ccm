@@ -5,6 +5,8 @@ delta:
 - 1
 - 2
 tau: 1
+tau_grid:
+- 1
 E_grid:
 - 3
 - 4
@@ -36,7 +38,7 @@ paths:
   atlas_root: parcellations/Parcellations/MNI
   atlas_file: parcellations/Parcellations/MNI/Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.nii.gz
 E_univ: 3
-E_mult: 4
+E_mult: 5
 simplex_k: 15
 smap_theta: 0.8
 decoding:

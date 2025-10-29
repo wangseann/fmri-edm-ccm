@@ -62,7 +62,7 @@ def collect_top_series(
     mde_output: pd.DataFrame,
     lag_store: Dict[str, Dict[int, pd.Series]],
     target_len: int,
-    top_n: int,
+    max_items: Optional[int] = None,
 ) -> List[Tuple[str, float, np.ndarray]]:
     if mde_output.empty:
         return []
@@ -70,9 +70,12 @@ def collect_top_series(
     rho_candidates = [c for c in mde_output.columns if "rho" in c.lower()]
     rho_col = rho_candidates[0] if rho_candidates else None
 
-    top_rows = mde_output.head(top_n)
+    rows = mde_output
+    if max_items is not None:
+        rows = rows.iloc[:max_items]
+
     series_list: List[Tuple[str, float, np.ndarray]] = []
-    for _, row in top_rows.iterrows():
+    for _, row in rows.iterrows():
         var_name = str(row.get(var_col, "")).strip()
         if not var_name:
             continue
@@ -357,9 +360,9 @@ def plot_residuals(
     lag_store: Dict[str, Dict[int, pd.Series]],
     target_name: str,
     plt_module=None,
-) -> None:
+) -> Tuple[Dict[str, float], Optional[np.ndarray]]:
     if plt_module is None or not mde_columns:
-        return
+        return {}, None
 
     series_list = []
     valid_columns = []
@@ -372,19 +375,19 @@ def plot_residuals(
         valid_columns.append(col_name)
 
     if not series_list:
-        return
+        return {}, None
 
     X = np.column_stack(series_list)
     y = target_series
 
     train_start, train_end = splits["train"]
     if train_end <= train_start:
-        return
+        return {}, None
 
     X_train = X[train_start:train_end]
     y_train = y[train_start:train_end]
     if X_train.size == 0:
-        return
+        return {}, None
 
     coefs, *_ = np.linalg.lstsq(X_train, y_train, rcond=None)
     y_pred = X @ coefs
@@ -417,11 +420,13 @@ def plot_residuals(
             return None
         return float(np.sqrt(np.nanmean(seg**2)))
 
+    rmse_dict: Dict[str, float] = {}
     rmse_lines = []
     for label, (start_idx, end_idx), _ in spans:
         rmse = seg_rmse(start_idx, end_idx)
         if rmse is None or not np.isfinite(rmse):
             continue
+        rmse_dict[label.lower()] = rmse
         rmse_lines.append(f"{label}: {rmse:.3f}")
     if rmse_lines:
         ax.text(
@@ -442,6 +447,114 @@ def plot_residuals(
     ax.grid(alpha=0.3)
     fig.tight_layout()
     fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_residuals.png", dpi=200)
+    plt_module.close(fig)
+
+    return rmse_dict, y_pred
+
+
+def plot_prediction_overlay(
+    *,
+    output_dir: Path,
+    subject: str,
+    story: str,
+    time_axis: np.ndarray,
+    target_series: np.ndarray,
+    prediction_series: np.ndarray,
+    splits: Dict[str, Tuple[int, int]],
+    target_name: str,
+    rmse_info: Dict[str, float],
+    plt_module=None,
+) -> None:
+    if plt_module is None:
+        return
+
+    fig, ax = plt_module.subplots(figsize=(12, 4.5))
+    ax.plot(time_axis, target_series, label="Target", color="#1f77b4", linewidth=1.4)
+    ax.plot(time_axis, prediction_series, label="Prediction", color="#d62728", linewidth=1.4, alpha=0.85)
+
+    spans = [
+        ("Train", splits.get("train"), "#4CAF50"),
+        ("Validation", splits.get("val"), "#FFC107"),
+        ("Test", splits.get("test"), "#F44336"),
+    ]
+    shown: set[str] = set()
+    for label, span, color in spans:
+        if span is None:
+            continue
+        start_idx, end_idx = span
+        if end_idx <= start_idx:
+            continue
+        start_time = time_axis[start_idx]
+        end_time = time_axis[min(end_idx - 1, len(time_axis) - 1)]
+        ax.axvspan(start_time, end_time, color=color, alpha=0.10, label=label if label not in shown else None)
+        shown.add(label)
+
+    if rmse_info:
+        rmse_lines = [f"{key}: {val:.3f}" for key, val in rmse_info.items() if np.isfinite(val)]
+        if rmse_lines:
+            ax.text(
+                0.01,
+                0.95,
+                " | ".join(rmse_lines),
+                transform=ax.transAxes,
+                ha="left",
+                va="top",
+                fontsize=9,
+                bbox=dict(facecolor="white", alpha=0.8, edgecolor="none"),
+            )
+
+    ax.set_xlabel("Trimmed index")
+    ax.set_ylabel("Value")
+    ax.set_title(f"Target vs prediction ({subject}/{story}, target={target_name})")
+    ax.legend(loc="upper right")
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_prediction_overlay.png", dpi=200)
+    plt_module.close(fig)
+
+
+def plot_prediction_scatter(
+    *,
+    output_dir: Path,
+    subject: str,
+    story: str,
+    target_series: np.ndarray,
+    prediction_series: np.ndarray,
+    splits: Dict[str, Tuple[int, int]],
+    target_name: str,
+    plt_module=None,
+) -> None:
+    if plt_module is None:
+        return
+
+    colors = {"train": "#4CAF50", "val": "#FFC107", "test": "#F44336"}
+    fig, ax = plt_module.subplots(figsize=(6, 6))
+
+    for key, color in colors.items():
+        span = splits.get(key)
+        if span is None:
+            continue
+        start_idx, end_idx = span
+        if end_idx <= start_idx:
+            continue
+        y_true = target_series[start_idx:end_idx]
+        y_pred = prediction_series[start_idx:end_idx]
+        if y_true.size == 0:
+            continue
+        ax.scatter(y_true, y_pred, label=key.capitalize(), alpha=0.65, s=24, color=color)
+
+    both = np.concatenate([target_series, prediction_series])
+    overall_min = float(np.nanmin(both))
+    overall_max = float(np.nanmax(both))
+    ax.plot([overall_min, overall_max], [overall_min, overall_max], color="#000000", linestyle="--", linewidth=1.0, alpha=0.7)
+
+    ax.set_xlabel("Observed target")
+    ax.set_ylabel("Predicted target")
+    ax.set_title(f"Prediction scatter ({subject}/{story}, target={target_name})")
+    ax.legend(loc="upper left")
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_prediction_scatter.png", dpi=200)
     plt_module.close(fig)
 
 
@@ -597,6 +710,7 @@ def run_mde_for_pair(
     top_n_plot: int,
     save_input_frame: bool,
     save_scatter: bool,
+    sample_steps: int = 5,
     plt_module=None,
 ) -> Dict[str, Any]:
     subject = subject.strip()
@@ -694,6 +808,8 @@ def run_mde_for_pair(
     if not p_lib_sizes:
         p_lib_sizes = [10, 25, 50, 75]
 
+    sample_steps = max(1, int(sample_steps))
+
     mde = MDE(
         dataFrame=mde_df,
         target="target",
@@ -704,7 +820,7 @@ def run_mde_for_pair(
         Tp=delta_default,
         tau=-1,
         exclusionRadius=theiler_min,
-        sample=5,
+        sample=sample_steps,
         pLibSizes=p_lib_sizes,
         ccmSlope=0.0,
         crossMapRhoMin=0.0,
@@ -719,14 +835,19 @@ def run_mde_for_pair(
     mde_output = mde.MDEOut.copy()
     mde_output.insert(0, "step", range(1, len(mde_output) + 1))
 
-    var_col = "variables" if "variables" in mde_output.columns else "variable"
-    roi_vars_from_output = [
-        str(val) for val in mde_output.get(var_col, pd.Series(dtype=str)).tolist() if isinstance(val, str) and val.startswith("roi_")
-    ]
+    rho_array = np.asarray(mde.MDErho, dtype=float)
+    if rho_array.size:
+        best_idx = int(np.nanargmax(rho_array))
+    else:
+        best_idx = len(mde_output) - 1
+    best_idx = max(0, best_idx)
+    best_output = mde_output.iloc[: best_idx + 1].copy()
+    best_variables = list(mde.MDEcolumns[: best_idx + 1])
+    best_rho = float(rho_array[best_idx]) if rho_array.size else float("nan")
 
-    var_col = "variables" if "variables" in mde_output.columns else "variable"
+    var_col = "variables" if "variables" in best_output.columns else "variable"
     roi_vars_from_output = [
-        str(val) for val in mde_output.get(var_col, pd.Series(dtype=str)).tolist() if isinstance(val, str) and val.startswith("roi_")
+        str(val) for val in best_output.get(var_col, pd.Series(dtype=str)).tolist() if isinstance(val, str) and val.startswith("roi_")
     ]
 
     output_dir = figs_root / subject / story / "day22_category_mde"
@@ -745,8 +866,8 @@ def run_mde_for_pair(
 
     summary_path = output_dir / f"mde_{safe_target}_summary.json"
 
-    top_series = collect_top_series(mde_output, lag_store, len(target_trim), top_n_plot)
-    roi_variables = roi_vars_from_output + [var for var in mde.MDEcolumns if isinstance(var, str) and var.startswith("roi_")]
+    top_series = collect_top_series(best_output, lag_store, len(target_trim), max_items=top_n_plot)
+    roi_variables = [var for var in best_variables if isinstance(var, str) and var.startswith("roi_")]
     plot_time_series_and_ranking(
         output_dir=plots_dir,
         subject=subject,
@@ -763,7 +884,7 @@ def run_mde_for_pair(
         output_dir=plots_dir,
         subject=subject,
         story=story,
-        mde_output=mde_output,
+        mde_output=best_output,
         target_name=target_column,
         plt_module=plt_module,
     )
@@ -771,22 +892,64 @@ def run_mde_for_pair(
         output_dir=plots_dir,
         subject=subject,
         story=story,
-        rho_sequence=mde.MDErho.tolist(),
+        rho_sequence=mde.MDErho[: best_idx + 1].tolist(),
         target_name=target_column,
         plt_module=plt_module,
     )
-    plot_residuals(
+    rmse_info, y_pred = plot_residuals(
         output_dir=plots_dir,
         subject=subject,
         story=story,
         time_axis=time_trim.to_numpy(dtype=float),
         target_series=target_trim.to_numpy(dtype=float),
         splits=splits,
-        mde_columns=mde.MDEcolumns,
+        mde_columns=best_variables,
         lag_store=lag_store,
         target_name=target_column,
         plt_module=plt_module,
     )
+
+    if y_pred is not None and plt_module is not None:
+        plot_prediction_overlay(
+            output_dir=plots_dir,
+            subject=subject,
+            story=story,
+            time_axis=time_trim.to_numpy(dtype=float),
+            target_series=target_trim.to_numpy(dtype=float),
+            prediction_series=y_pred.astype(float),
+            splits=splits,
+            target_name=target_column,
+            rmse_info=rmse_info,
+            plt_module=plt_module,
+        )
+        plot_prediction_scatter(
+            output_dir=plots_dir,
+            subject=subject,
+            story=story,
+            target_series=target_trim.to_numpy(dtype=float),
+            prediction_series=y_pred.astype(float),
+            splits=splits,
+            target_name=target_column,
+            plt_module=plt_module,
+        )
+
+    prediction_csv: Optional[Path] = None
+    if y_pred is not None:
+        start_sec_trim: Optional[np.ndarray] = None
+        if "start_sec" in category_df.columns:
+            start_sec_trim = category_df["start_sec"].iloc[max_lag:].to_numpy(dtype=float)
+        prediction_df = pd.DataFrame(
+            {
+                "trim_index": np.arange(len(time_trim), dtype=int),
+                "time": time_trim.to_numpy(dtype=float),
+                "target": target_trim.to_numpy(dtype=float),
+                "prediction": y_pred.astype(float),
+            }
+        )
+        if start_sec_trim is not None and start_sec_trim.shape[0] == len(prediction_df):
+            prediction_df.insert(1, "start_sec", start_sec_trim)
+        prediction_csv = output_dir / f"mde_{safe_target}_best_prediction.csv"
+        prediction_df.to_csv(prediction_csv, index=False)
 
     candidate_html = save_candidate_roi_view(
         output_dir=output_dir,
@@ -808,13 +971,17 @@ def run_mde_for_pair(
         "lib_span": lib_span,
         "pred_span": pred_span,
         "pLibSizes": p_lib_sizes,
+        "best_step": int(best_idx + 1),
+        "best_rho": best_rho,
         "top_variables": [item[0] for item in top_series],
-        "selected_variables": list(mde.MDEcolumns),
+        "selected_variables": best_variables,
         "roi_variables": roi_variables,
         "plots_dir": str(plots_dir),
         "candidate_roi_html": str(candidate_html) if candidate_html else None,
         "selection_csv": str(output_csv),
         "input_csv": str(input_csv) if save_input_frame else None,
+        "rmse": rmse_info,
+        "prediction_csv": str(prediction_csv) if prediction_csv else None,
     }
     summary_path.write_text(json.dumps(summary, indent=2))
 

@@ -1,0 +1,38 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS01 --story wheretheressmoke --target cat_abstract --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_day26_concat_test/all_stories/cat_abstract_ --figs-base figs/UTS01/all_stories/day26_smoothing_cli_concat_test/cat_abstract_ --methods gaussian moving_average --windows 0.0 0.25 1.0 --max-predictors 1 --use-concat --concat-story-label all_stories --concat-features-root /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test --concat-output-subdir all_stories/day24_subject_concat
+Building Day24 concatenation for UTS01 → /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test/subjects/UTS01/all_stories/day24_subject_concat
+Generating Day19 category series for 1 stories: ['wheretheressmoke']
+ - Generating categories for UTS01/wheretheressmoke
+=== Day19 category build for UTS01 / wheretheressmoke ===
+Loaded 2308 transcript events.
+TR edges: 302 (n_tr=301) spanning 602.00 seconds.
+Loaded English1000 embeddings from /bucket/PaoU/seann/openneuro/ds003020/derivative/english1000sm.hf5 (vocab=10470).
+Loaded Word2Vec fallback from embeddings/GoogleNews-vectors-negative300.bin.
+Loaded 12 CSV-driven categories from /flash/PaoU/seann/fmri-edm-ccm/configs/cluster_words.csv: ['abstract', 'communal', 'emotional', 'locational', 'mental', 'numeric', 'professional', 'social', 'tactile', 'temporal', 'violent', 'visual']
+Tokens with embeddings: 2175/2308 (OOV rate=5.76%).
+Canonical bins without tokens: 0/12039
+Traceback (most recent call last):
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 332, in ensure_concat_manifest
+    generate_category_time_series(
+  File "/flash/PaoU/seann/fmri-edm-ccm/src/day19_category_builder.py", line 649, in generate_category_time_series
+    canonical_df_raw, canonical_matrix = score_time_series(
+                                         ^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/src/day19_category_builder.py", line 327, in score_time_series
+    score_matrix[bin_idx, col_idx] = score_tr(bucket, method, lexicon=lexicon, prototype=prototype, prototype_norm=prototype_norm)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/src/day19_category_builder.py", line 252, in score_tr
+    sim = float(np.dot(emb, prototype) / (emb_norm * prototype_norm))
+                ^^^^^^^^^^^^^^^^^^^^^^
+ValueError: shapes (300,) and (985,) not aligned: 300 (dim 0) != 985 (dim 0)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 717, in <module>
+    main()
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 451, in main
+    manifest_path = ensure_concat_manifest(
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 351, in ensure_concat_manifest
+    raise RuntimeError(f"Failed to generate category series for {subject}/{story_name}: {exc}") from exc
+RuntimeError: Failed to generate category series for UTS01/wheretheressmoke: shapes (300,) and (985,) not aligned: 300 (dim 0) != 985 (dim 0)

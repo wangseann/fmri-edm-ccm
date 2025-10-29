@@ -3,3 +3,4 @@ pandas
 scikit-learn
 matplotlib
 pyyaml
+ipywidgets>=8.0

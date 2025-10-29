@@ -1,9 +1,15 @@
 __init__
+align_fallback_embeddings
 baselines
 build_story_cache
 ccm
+day22_category_mde
+day24_subject_concat
+day25_bleed_correction
+decoding
 edm
 edm_ccm
+encoding
 features
 init
 io_ds003020
@@ -11,4 +17,5 @@ plots
 qc_viz
 roi
 run_demo
+selection
 utils

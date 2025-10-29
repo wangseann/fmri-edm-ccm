@@ -1,0 +1,255 @@
+Running Day18 story-cache batch with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/run_story_cache_batch.py --config configs/demo.yaml --subjects UTS01 --stories adollshouse adventuresinsayingyes afatherscover againstthewind alternateithicatom avatar backsideofthestorm becomingindian beneaththemushroomcloud birthofanation bluehope breakingupintheageofgoogle buck catfishingstrangerstofindmyself cautioneating christmas1940 cocoonoflove comingofageondeathrow exorcism eyespy firetestforlove food forgettingfear fromboyhoodtofatherhood gangstersandcookies goingthelibertyway goldiethegoldfish golfclubbing gpsformylostidentity hangtime haveyoumethimyet howtodraw ifthishaircouldtalk inamoment itsabox jugglingandjesus kiksuya leavingbaghdad legacy life lifeanddeathontheoregontrail lifereimagined listo mayorofthefreaks metsmagic mybackseatviewofagreatromance myfathershands myfirstdaywiththeyankees naked notontheusualtour odetostepfather onlyonewaytofindout penpal quietfire reachingoutbetweenthebars shoppinginchina singlewomanseekingmanwich sloth souls stagefright stumblinginthedark superheroesjustforeachother sweetaspie swimmingwithastronauts thatthingonmyarm theadvancedbeginner theclosetthatateeverything thecurse thefreedomridersandme theinterview thepostmanalwayscalls theshower thetiniestbouquet thetriangleshirtwaistconnection threemonths thumbsup tildeath treasureisland undertheinfluence vixenandtheussr waitingtogo whenmothersbullyback wheretheressmoke wildwomenanddancingqueens
+[INFO] Prepared 84 subject/story pairs.
+
+=== Building cache for UTS01 / adollshouse ===
+[INFO] Cache refreshed for UTS01/adollshouse
+
+=== Building cache for UTS01 / adventuresinsayingyes ===
+[INFO] Cache refreshed for UTS01/adventuresinsayingyes
+
+=== Building cache for UTS01 / afatherscover ===
+[INFO] Cache refreshed for UTS01/afatherscover
+
+=== Building cache for UTS01 / againstthewind ===
+[INFO] Cache refreshed for UTS01/againstthewind
+
+=== Building cache for UTS01 / alternateithicatom ===
+[INFO] Cache refreshed for UTS01/alternateithicatom
+
+=== Building cache for UTS01 / avatar ===
+[INFO] Cache refreshed for UTS01/avatar
+
+=== Building cache for UTS01 / backsideofthestorm ===
+[INFO] Cache refreshed for UTS01/backsideofthestorm
+
+=== Building cache for UTS01 / becomingindian ===
+[INFO] Cache refreshed for UTS01/becomingindian
+
+=== Building cache for UTS01 / beneaththemushroomcloud ===
+[INFO] Cache refreshed for UTS01/beneaththemushroomcloud
+
+=== Building cache for UTS01 / birthofanation ===
+[INFO] Cache refreshed for UTS01/birthofanation
+
+=== Building cache for UTS01 / bluehope ===
+[INFO] Cache refreshed for UTS01/bluehope
+
+=== Building cache for UTS01 / breakingupintheageofgoogle ===
+[INFO] Cache refreshed for UTS01/breakingupintheageofgoogle
+
+=== Building cache for UTS01 / buck ===
+[INFO] Cache refreshed for UTS01/buck
+
+=== Building cache for UTS01 / catfishingstrangerstofindmyself ===
+[INFO] Cache refreshed for UTS01/catfishingstrangerstofindmyself
+
+=== Building cache for UTS01 / cautioneating ===
+[INFO] Cache refreshed for UTS01/cautioneating
+
+=== Building cache for UTS01 / christmas1940 ===
+[INFO] Cache refreshed for UTS01/christmas1940
+
+=== Building cache for UTS01 / cocoonoflove ===
+[INFO] Cache refreshed for UTS01/cocoonoflove
+
+=== Building cache for UTS01 / comingofageondeathrow ===
+[INFO] Cache refreshed for UTS01/comingofageondeathrow
+
+=== Building cache for UTS01 / exorcism ===
+[INFO] Cache refreshed for UTS01/exorcism
+
+=== Building cache for UTS01 / eyespy ===
+[INFO] Cache refreshed for UTS01/eyespy
+
+=== Building cache for UTS01 / firetestforlove ===
+[INFO] Cache refreshed for UTS01/firetestforlove
+
+=== Building cache for UTS01 / food ===
+[INFO] Cache refreshed for UTS01/food
+
+=== Building cache for UTS01 / forgettingfear ===
+[INFO] Cache refreshed for UTS01/forgettingfear
+
+=== Building cache for UTS01 / fromboyhoodtofatherhood ===
+[INFO] Cache refreshed for UTS01/fromboyhoodtofatherhood
+
+=== Building cache for UTS01 / gangstersandcookies ===
+[INFO] Cache refreshed for UTS01/gangstersandcookies
+
+=== Building cache for UTS01 / goingthelibertyway ===
+[INFO] Cache refreshed for UTS01/goingthelibertyway
+
+=== Building cache for UTS01 / goldiethegoldfish ===
+[INFO] Cache refreshed for UTS01/goldiethegoldfish
+
+=== Building cache for UTS01 / golfclubbing ===
+[INFO] Cache refreshed for UTS01/golfclubbing
+
+=== Building cache for UTS01 / gpsformylostidentity ===
+[INFO] Cache refreshed for UTS01/gpsformylostidentity
+
+=== Building cache for UTS01 / hangtime ===
+[INFO] Cache refreshed for UTS01/hangtime
+
+=== Building cache for UTS01 / haveyoumethimyet ===
+[INFO] Cache refreshed for UTS01/haveyoumethimyet
+
+=== Building cache for UTS01 / howtodraw ===
+[INFO] Cache refreshed for UTS01/howtodraw
+
+=== Building cache for UTS01 / ifthishaircouldtalk ===
+[INFO] Cache refreshed for UTS01/ifthishaircouldtalk
+
+=== Building cache for UTS01 / inamoment ===
+[INFO] Cache refreshed for UTS01/inamoment
+
+=== Building cache for UTS01 / itsabox ===
+[INFO] Cache refreshed for UTS01/itsabox
+
+=== Building cache for UTS01 / jugglingandjesus ===
+[INFO] Cache refreshed for UTS01/jugglingandjesus
+
+=== Building cache for UTS01 / kiksuya ===
+[INFO] Cache refreshed for UTS01/kiksuya
+
+=== Building cache for UTS01 / leavingbaghdad ===
+[INFO] Cache refreshed for UTS01/leavingbaghdad
+
+=== Building cache for UTS01 / legacy ===
+[INFO] Cache refreshed for UTS01/legacy
+
+=== Building cache for UTS01 / life ===
+[INFO] Cache refreshed for UTS01/life
+
+=== Building cache for UTS01 / lifeanddeathontheoregontrail ===
+[INFO] Cache refreshed for UTS01/lifeanddeathontheoregontrail
+
+=== Building cache for UTS01 / lifereimagined ===
+[INFO] Cache refreshed for UTS01/lifereimagined
+
+=== Building cache for UTS01 / listo ===
+[INFO] Cache refreshed for UTS01/listo
+
+=== Building cache for UTS01 / mayorofthefreaks ===
+[INFO] Cache refreshed for UTS01/mayorofthefreaks
+
+=== Building cache for UTS01 / metsmagic ===
+[INFO] Cache refreshed for UTS01/metsmagic
+
+=== Building cache for UTS01 / mybackseatviewofagreatromance ===
+[INFO] Cache refreshed for UTS01/mybackseatviewofagreatromance
+
+=== Building cache for UTS01 / myfathershands ===
+[INFO] Cache refreshed for UTS01/myfathershands
+
+=== Building cache for UTS01 / myfirstdaywiththeyankees ===
+[INFO] Cache refreshed for UTS01/myfirstdaywiththeyankees
+
+=== Building cache for UTS01 / naked ===
+[INFO] Cache refreshed for UTS01/naked
+
+=== Building cache for UTS01 / notontheusualtour ===
+[INFO] Cache refreshed for UTS01/notontheusualtour
+
+=== Building cache for UTS01 / odetostepfather ===
+[INFO] Cache refreshed for UTS01/odetostepfather
+
+=== Building cache for UTS01 / onlyonewaytofindout ===
+[INFO] Cache refreshed for UTS01/onlyonewaytofindout
+
+=== Building cache for UTS01 / penpal ===
+[INFO] Cache refreshed for UTS01/penpal
+
+=== Building cache for UTS01 / quietfire ===
+[INFO] Cache refreshed for UTS01/quietfire
+
+=== Building cache for UTS01 / reachingoutbetweenthebars ===
+[INFO] Cache refreshed for UTS01/reachingoutbetweenthebars
+
+=== Building cache for UTS01 / shoppinginchina ===
+[INFO] Cache refreshed for UTS01/shoppinginchina
+
+=== Building cache for UTS01 / singlewomanseekingmanwich ===
+[INFO] Cache refreshed for UTS01/singlewomanseekingmanwich
+
+=== Building cache for UTS01 / sloth ===
+[INFO] Cache refreshed for UTS01/sloth
+
+=== Building cache for UTS01 / souls ===
+[INFO] Cache refreshed for UTS01/souls
+
+=== Building cache for UTS01 / stagefright ===
+[INFO] Cache refreshed for UTS01/stagefright
+
+=== Building cache for UTS01 / stumblinginthedark ===
+[INFO] Cache refreshed for UTS01/stumblinginthedark
+
+=== Building cache for UTS01 / superheroesjustforeachother ===
+[INFO] Cache refreshed for UTS01/superheroesjustforeachother
+
+=== Building cache for UTS01 / sweetaspie ===
+[INFO] Cache refreshed for UTS01/sweetaspie
+
+=== Building cache for UTS01 / swimmingwithastronauts ===
+[INFO] Cache refreshed for UTS01/swimmingwithastronauts
+
+=== Building cache for UTS01 / thatthingonmyarm ===
+[INFO] Cache refreshed for UTS01/thatthingonmyarm
+
+=== Building cache for UTS01 / theadvancedbeginner ===
+[INFO] Cache refreshed for UTS01/theadvancedbeginner
+
+=== Building cache for UTS01 / theclosetthatateeverything ===
+[INFO] Cache refreshed for UTS01/theclosetthatateeverything
+
+=== Building cache for UTS01 / thecurse ===
+[INFO] Cache refreshed for UTS01/thecurse
+
+=== Building cache for UTS01 / thefreedomridersandme ===
+[INFO] Cache refreshed for UTS01/thefreedomridersandme
+
+=== Building cache for UTS01 / theinterview ===
+[INFO] Cache refreshed for UTS01/theinterview
+
+=== Building cache for UTS01 / thepostmanalwayscalls ===
+[INFO] Cache refreshed for UTS01/thepostmanalwayscalls
+
+=== Building cache for UTS01 / theshower ===
+[INFO] Cache refreshed for UTS01/theshower
+
+=== Building cache for UTS01 / thetiniestbouquet ===
+[INFO] Cache refreshed for UTS01/thetiniestbouquet
+
+=== Building cache for UTS01 / thetriangleshirtwaistconnection ===
+[INFO] Cache refreshed for UTS01/thetriangleshirtwaistconnection
+
+=== Building cache for UTS01 / threemonths ===
+[INFO] Cache refreshed for UTS01/threemonths
+
+=== Building cache for UTS01 / thumbsup ===
+[INFO] Cache refreshed for UTS01/thumbsup
+
+=== Building cache for UTS01 / tildeath ===
+[INFO] Cache refreshed for UTS01/tildeath
+
+=== Building cache for UTS01 / treasureisland ===
+[ERROR] Failed to build cache for UTS01/treasureisland: Compressed file ended before the end-of-stream marker was reached
+
+=== Building cache for UTS01 / undertheinfluence ===
+[INFO] Cache refreshed for UTS01/undertheinfluence
+
+=== Building cache for UTS01 / vixenandtheussr ===
+[INFO] Cache refreshed for UTS01/vixenandtheussr
+
+=== Building cache for UTS01 / waitingtogo ===
+[INFO] Cache refreshed for UTS01/waitingtogo
+
+=== Building cache for UTS01 / whenmothersbullyback ===
+[INFO] Cache refreshed for UTS01/whenmothersbullyback
+
+=== Building cache for UTS01 / wheretheressmoke ===
+[INFO] Cache refreshed for UTS01/wheretheressmoke
+
+=== Building cache for UTS01 / wildwomenanddancingqueens ===
+[INFO] Cache refreshed for UTS01/wildwomenanddancingqueens
