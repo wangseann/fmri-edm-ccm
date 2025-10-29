@@ -4,7 +4,7 @@ pycache/
 .env
 derivatives/
 runs/
-features_*/
+features*/
 features1/
 features_no_fallback/
 data_cache/

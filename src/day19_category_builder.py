@@ -177,7 +177,9 @@ class FallbackEmbeddingAdapter:
         return vec
 
 
-def lookup_embedding(token: str, primary_lookup: Dict[str, np.ndarray], fallback: Optional[Union[FallbackEmbeddingAdapter, Any]] = None) -> Optional[np.ndarray]:
+def lookup_embedding(
+    token: str, primary_lookup: Dict[str, np.ndarray], fallback: Optional[Union[FallbackEmbeddingAdapter, Any]] = None
+) -> Optional[np.ndarray]:
     key = token.lower().strip()
     if not key:
         return None
