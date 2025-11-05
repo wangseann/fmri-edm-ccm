@@ -1,0 +1,8 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS01 --story wheretheressmoke --target cat_numeric --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_day26_eval_cli_CAE_90_detrend_moving_average_concatCAE/all_stories/cat_numeric_ --figs-base figs/UTS01/all_stories/day26_smoothing_cli_MDE90step_CAE_detrend_moving_average_concatCAE/cat_numeric_ --use-cae --methods moving_average --windows 0.0 5.0 10.0 --max-predictors 90 --use-concat --concat-story-label all_stories --concat-features-root /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test --concat-output-subdir all_stories/day24_subject_concat --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+Using existing Day24 manifest at /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test/subjects/UTS01/all_stories/day24_subject_concat/manifest.json
+Configured 3 smoothing settings for UTS01/wheretheressmoke.
+
+=== none_0p00: method=moving_average window=0.00s ===
+Saved category plot to /flash/PaoU/seann/fmri-edm-ccm/figs/UTS01/all_stories/day26_smoothing_cli_MDE90step_CAE_detrend_moving_average_concatCAE/cat_numeric_/none_0p00/category_timeseries_overview.png
+slurmstepd-deigo011807: error: *** JOB 13398609 ON deigo011807 CANCELLED AT 2025-11-03T17:06:04 DUE TO TIME LIMIT ***

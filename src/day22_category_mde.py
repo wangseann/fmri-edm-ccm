@@ -325,6 +325,7 @@ def plot_cumulative_rho(
     rho_sequence: Sequence[float],
     target_name: str,
     plt_module=None,
+    highlight_step: Optional[int] = None,
 ) -> None:
     if plt_module is None or not rho_sequence:
         return
@@ -341,10 +342,61 @@ def plot_cumulative_rho(
     ax.set_xlabel("MDE step")
     ax.set_ylabel("rho value")
     ax.set_title(f"MDE rho progression ({subject}/{story}, target={target_name})")
+    ax.set_xlim(1, steps[-1])
+    if highlight_step is not None and steps.size and 1 <= highlight_step <= steps[-1]:
+        ax.axvline(
+            highlight_step,
+            color="#d62728",
+            linestyle=":",
+            linewidth=1.2,
+            alpha=0.8,
+            label=f"Selected step ({highlight_step})",
+        )
     ax.grid(alpha=0.3)
     ax.legend()
     fig.tight_layout()
     fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_rho_progression.png", dpi=200)
+    plt_module.close(fig)
+
+
+def plot_cae_progression(
+    *,
+    output_dir: Path,
+    subject: str,
+    story: str,
+    cae_sequence: Sequence[float],
+    target_name: str,
+    plt_module=None,
+    highlight_step: Optional[int] = None,
+) -> None:
+    if plt_module is None or not cae_sequence:
+        return
+
+    cae_vals = np.array(cae_sequence, dtype=float)
+    if cae_vals.size == 0 or not np.isfinite(cae_vals).any():
+        return
+
+    steps = np.arange(1, len(cae_vals) + 1, dtype=int)
+
+    fig, ax = plt_module.subplots(figsize=(8, 4))
+    ax.plot(steps, cae_vals, marker="o", linewidth=1.5, color="#ff7f0e", label="CAE")
+    ax.set_xlabel("MDE step")
+    ax.set_ylabel("CAE")
+    ax.set_title(f"MDE CAE progression ({subject}/{story}, target={target_name})")
+    ax.set_xlim(1, steps[-1])
+    if highlight_step is not None and steps.size and 1 <= highlight_step <= steps[-1]:
+        ax.axvline(
+            highlight_step,
+            color="#1f77b4",
+            linestyle=":",
+            linewidth=1.2,
+            alpha=0.8,
+            label=f"Selected step ({highlight_step})",
+        )
+    ax.grid(alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_cae_progression.png", dpi=200)
     plt_module.close(fig)
 
 
@@ -360,9 +412,9 @@ def plot_residuals(
     lag_store: Dict[str, Dict[int, pd.Series]],
     target_name: str,
     plt_module=None,
-) -> Tuple[Dict[str, float], Optional[np.ndarray]]:
+) -> Tuple[Dict[str, Dict[str, float]], Optional[np.ndarray]]:
     if plt_module is None or not mde_columns:
-        return {}, None
+        return {"rmse": {}, "rho": {}, "cae": {}}, None
 
     series_list = []
     valid_columns = []
@@ -375,19 +427,19 @@ def plot_residuals(
         valid_columns.append(col_name)
 
     if not series_list:
-        return {}, None
+        return {"rmse": {}, "rho": {}, "cae": {}}, None
 
     X = np.column_stack(series_list)
     y = target_series
 
     train_start, train_end = splits["train"]
     if train_end <= train_start:
-        return {}, None
+        return {"rmse": {}, "rho": {}, "cae": {}}, None
 
     X_train = X[train_start:train_end]
     y_train = y[train_start:train_end]
     if X_train.size == 0:
-        return {}, None
+        return {"rmse": {}, "rho": {}, "cae": {}}, None
 
     coefs, *_ = np.linalg.lstsq(X_train, y_train, rcond=None)
     y_pred = X @ coefs
@@ -420,7 +472,39 @@ def plot_residuals(
             return None
         return float(np.sqrt(np.nanmean(seg**2)))
 
+    def seg_rho(start_idx: int, end_idx: int) -> Optional[float]:
+        if end_idx <= start_idx:
+            return None
+        true_seg = target_series[start_idx:end_idx]
+        pred_seg = y_pred[start_idx:end_idx]
+        if true_seg.size < 2:
+            return None
+        if np.allclose(true_seg, true_seg[0]) or np.allclose(pred_seg, pred_seg[0]):
+            return None
+        if not np.isfinite(true_seg).all() or not np.isfinite(pred_seg).all():
+            return None
+        cov = np.corrcoef(true_seg, pred_seg)
+        if cov.shape != (2, 2):
+            return None
+        rho_val = cov[0, 1]
+        if not np.isfinite(rho_val):
+            return None
+        return float(rho_val)
+
+    def seg_cae(start_idx: int, end_idx: int) -> Optional[float]:
+        if end_idx <= start_idx:
+            return None
+        seg = residuals[start_idx:end_idx]
+        if seg.size == 0:
+            return None
+        cae_val = float(np.nansum(np.abs(seg)))
+        if not np.isfinite(cae_val):
+            return None
+        return cae_val
+
     rmse_dict: Dict[str, float] = {}
+    rho_dict: Dict[str, float] = {}
+    cae_dict: Dict[str, float] = {}
     rmse_lines = []
     for label, (start_idx, end_idx), _ in spans:
         rmse = seg_rmse(start_idx, end_idx)
@@ -428,6 +512,12 @@ def plot_residuals(
             continue
         rmse_dict[label.lower()] = rmse
         rmse_lines.append(f"{label}: {rmse:.3f}")
+        rho_val = seg_rho(start_idx, end_idx)
+        if rho_val is not None and np.isfinite(rho_val):
+            rho_dict[label.lower()] = rho_val
+        cae_val = seg_cae(start_idx, end_idx)
+        if cae_val is not None and np.isfinite(cae_val):
+            cae_dict[label.lower()] = cae_val
     if rmse_lines:
         ax.text(
             0.01,
@@ -449,7 +539,7 @@ def plot_residuals(
     fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_residuals.png", dpi=200)
     plt_module.close(fig)
 
-    return rmse_dict, y_pred
+    return {"rmse": rmse_dict, "rho": rho_dict, "cae": cae_dict}, y_pred
 
 
 def plot_prediction_overlay(
@@ -712,6 +802,7 @@ def run_mde_for_pair(
     save_scatter: bool,
     sample_steps: int = 5,
     plt_module=None,
+    use_cae: bool = False,
 ) -> Dict[str, Any]:
     subject = subject.strip()
     story = story.strip()
@@ -834,13 +925,71 @@ def run_mde_for_pair(
 
     mde_output = mde.MDEOut.copy()
     mde_output.insert(0, "step", range(1, len(mde_output) + 1))
+    mde_output["cae"] = np.nan
+
+    cae_array: Optional[np.ndarray] = None
+    target_array = target_trim.to_numpy(dtype=float)
+    train_start, train_end = splits["train"]
+
+    if len(mde.MDEcolumns) > 0:
+        if train_end <= train_start:
+            if use_cae:
+                warnings.warn("CAE selection requested, but training span is empty. Falling back to rho.")
+        else:
+            cae_values: List[float] = []
+            for idx, _ in enumerate(mde.MDEcolumns):
+                current_cols = list(mde.MDEcolumns[: idx + 1])
+                try:
+                    predictors = []
+                    for col_name in current_cols:
+                        base, lag = parse_variable_name(col_name)
+                        series = lag_store.get(base, {}).get(lag)
+                        if series is None:
+                            raise KeyError(f"Missing lagged series for {col_name}")
+                        arr = series.to_numpy(dtype=float)
+                        if arr.shape[0] != target_array.shape[0]:
+                            raise ValueError(f"Predictor length mismatch for {col_name}.")
+                        predictors.append(arr)
+                    if not predictors:
+                        raise ValueError("No predictors available for CAE computation.")
+                    X = np.column_stack(predictors)
+                    X_train = X[train_start:train_end]
+                    y_train = target_array[train_start:train_end]
+                    if X_train.size == 0:
+                        raise ValueError("Empty design matrix for CAE computation.")
+                    coefs, *_ = np.linalg.lstsq(X_train, y_train, rcond=None)
+                    y_pred_full = X @ coefs
+                    cae_val = float(np.nansum(np.abs(target_array - y_pred_full)))
+                except (np.linalg.LinAlgError, ValueError, KeyError) as exc:
+                    warnings.warn(f"Failed to compute CAE at step {idx + 1}: {exc}")
+                    cae_val = float("nan")
+                cae_values.append(cae_val)
+
+            if cae_values:
+                cae_array = np.asarray(cae_values, dtype=float)
+                if len(mde_output) and cae_array.size > len(mde_output):
+                    cae_array = cae_array[: len(mde_output)]
+                mde_output.loc[mde_output.index[: len(cae_array)], "cae"] = cae_array
 
     rho_array = np.asarray(mde.MDErho, dtype=float)
+    if len(mde_output) and rho_array.size > len(mde_output):
+        rho_array = rho_array[: len(mde_output)]
     if rho_array.size:
         best_idx = int(np.nanargmax(rho_array))
     else:
         best_idx = len(mde_output) - 1
     best_idx = max(0, best_idx)
+    best_cae = float("nan")
+    selection_metric = "rho"
+
+    if use_cae and cae_array is not None and np.isfinite(cae_array).any():
+        new_idx = int(np.nanargmin(cae_array))
+        best_idx = new_idx
+        best_cae = float(cae_array[new_idx])
+        selection_metric = "cae"
+    elif cae_array is not None and 0 <= best_idx < len(cae_array):
+        best_cae = float(cae_array[best_idx])
+
     best_output = mde_output.iloc[: best_idx + 1].copy()
     best_variables = list(mde.MDEcolumns[: best_idx + 1])
     best_rho = float(rho_array[best_idx]) if rho_array.size else float("nan")
@@ -888,15 +1037,28 @@ def run_mde_for_pair(
         target_name=target_column,
         plt_module=plt_module,
     )
+    full_rho_sequence = rho_array.tolist()
     plot_cumulative_rho(
         output_dir=plots_dir,
         subject=subject,
         story=story,
-        rho_sequence=mde.MDErho[: best_idx + 1].tolist(),
+        rho_sequence=full_rho_sequence,
         target_name=target_column,
         plt_module=plt_module,
+        highlight_step=(best_idx + 1) if full_rho_sequence else None,
     )
-    rmse_info, y_pred = plot_residuals(
+    if cae_array is not None and plt_module is not None:
+        cae_sequence = cae_array.tolist()
+        plot_cae_progression(
+            output_dir=plots_dir,
+            subject=subject,
+            story=story,
+            cae_sequence=cae_sequence,
+            target_name=target_column,
+            plt_module=plt_module,
+            highlight_step=(best_idx + 1) if cae_sequence else None,
+        )
+    metrics_info, y_pred = plot_residuals(
         output_dir=plots_dir,
         subject=subject,
         story=story,
@@ -908,6 +1070,10 @@ def run_mde_for_pair(
         target_name=target_column,
         plt_module=plt_module,
     )
+
+    rmse_info = metrics_info.get("rmse", {})
+    rho_split = metrics_info.get("rho", {})
+    cae_split = metrics_info.get("cae", {})
 
     if y_pred is not None and plt_module is not None:
         plot_prediction_overlay(
@@ -973,6 +1139,8 @@ def run_mde_for_pair(
         "pLibSizes": p_lib_sizes,
         "best_step": int(best_idx + 1),
         "best_rho": best_rho,
+        "best_cae": best_cae,
+        "selection_metric": selection_metric,
         "top_variables": [item[0] for item in top_series],
         "selected_variables": best_variables,
         "roi_variables": roi_variables,
@@ -981,7 +1149,13 @@ def run_mde_for_pair(
         "selection_csv": str(output_csv),
         "input_csv": str(input_csv) if save_input_frame else None,
         "rmse": rmse_info,
+        "rho_by_span": rho_split,
+        "cae_by_span": cae_split,
         "prediction_csv": str(prediction_csv) if prediction_csv else None,
+        "splits": {
+            key: [int(span[0]), int(span[1])] if span is not None else None
+            for key, span in splits.items()
+        },
     }
     summary_path.write_text(json.dumps(summary, indent=2))
 

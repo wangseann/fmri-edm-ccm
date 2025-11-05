@@ -1,0 +1,13 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS01 --story wheretheressmoke --target cat_violent --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_day26_eval_cli_rho_90_detrend_moving_average_concat_2storytestrho/two_stories/cat_violent_ --figs-base figs/UTS01/two_stories/day26_smoothing_cli_MDE90step_rho_detrend_moving_average_concat_2storytestrho/cat_violent_ --methods moving_average --windows 10.0 --max-predictors 1 --use-concat --concat-story-label two_stories --concat-features-root /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test --concat-output-subdir two_stories/day24_subject_concat --concat-story-order adollshouse wildwomenanddancingqueens --concat-force --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+Building Day24 concatenation for UTS01 → /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test/subjects/UTS01/two_stories/day24_subject_concat
+Day24 manifest written to /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test/subjects/UTS01/two_stories/day24_subject_concat/manifest.json
+Traceback (most recent call last):
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 1077, in <module>
+    main()
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 677, in main
+    roi_store = np.load(roi_concat_path, allow_pickle=False)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 463, in load
+    raise EOFError("No data left in file")
+EOFError: No data left in file

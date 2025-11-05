@@ -1,0 +1,7 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS01 --story wheretheressmoke --target cat_visual --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_day26_eval_cli_rho_100_detrend_moving_average_concat_10storyrho/ten_stories/cat_visual_ --figs-base figs/UTS01/ten_stories/day26_smoothing_cli_MDE100step_rho_detrend_moving_average_concat_10storyrho/cat_visual_ --methods moving_average --windows 10.0 --max-predictors 100 --use-concat --concat-story-label ten_stories --concat-features-root /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test --concat-output-subdir ten_stories/day24_subject_concat --concat-story-order adollshouse adventuresinsayingyes breakingupintheageofgoogle cocoonoflove comingofageondeathrow eyespy firetestforlove gangstersandcookies wheretheressmoke wildwomenanddancingqueens --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+Using existing Day24 manifest at /flash/PaoU/seann/fmri-edm-ccm/features_day26_concat_test/subjects/UTS01/ten_stories/day24_subject_concat/manifest.json
+Configured 2 smoothing settings for UTS01/wheretheressmoke.
+
+=== none_0p00: method=moving_average window=0.00s ===
+Saved category plot to /flash/PaoU/seann/fmri-edm-ccm/figs/UTS01/ten_stories/day26_smoothing_cli_MDE100step_rho_detrend_moving_average_concat_10storyrho/cat_visual_/none_0p00/category_timeseries_overview.png

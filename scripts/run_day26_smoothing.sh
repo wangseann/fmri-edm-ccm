@@ -21,6 +21,12 @@ CONCAT_FEATURES_ROOT=${CONCAT_FEATURES_ROOT:-}
 CONCAT_OUTPUT_SUBDIR=${CONCAT_OUTPUT_SUBDIR:-}
 CONCAT_STORY_ORDER=${CONCAT_STORY_ORDER:-}
 CONCAT_FORCE=${CONCAT_FORCE:-false}
+USE_CAE=${USE_CAE:-false}
+APPLY_HUTH_PREPROC=${APPLY_HUTH_PREPROC:-true}
+PREPROC_WINDOW=${PREPROC_WINDOW:-120.0}
+PREPROC_TRIM=${PREPROC_TRIM:-20.0}
+PREPROC_POLYORDER=${PREPROC_POLYORDER:-2}
+PREPROC_ZSCORE=${PREPROC_ZSCORE:-true}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -39,6 +45,10 @@ CMD=("python" "${SCRIPT_DIR}/day26_smoothing_mde.py"
 
 if [[ -n "${FIGS_BASE}" ]]; then
     CMD+=(--figs-base "${FIGS_BASE}")
+fi
+
+if [[ "${USE_CAE}" == "true" ]]; then
+    CMD+=(--use-cae)
 fi
 
 if [[ -n "${METHODS}" ]]; then
@@ -83,6 +93,20 @@ if [[ "${USE_CONCAT}" == "true" ]]; then
     if [[ "${CONCAT_FORCE}" == "true" ]]; then
         CMD+=(--concat-force)
     fi
+fi
+
+if [[ "${APPLY_HUTH_PREPROC}" == "true" ]]; then
+    CMD+=(--huth-preproc)
+else
+    CMD+=(--no-huth-preproc)
+fi
+CMD+=(--preproc-window "${PREPROC_WINDOW}")
+CMD+=(--preproc-trim "${PREPROC_TRIM}")
+CMD+=(--preproc-polyorder "${PREPROC_POLYORDER}")
+if [[ "${PREPROC_ZSCORE}" == "false" ]]; then
+    CMD+=(--no-preproc-zscore)
+else
+    CMD+=(--preproc-zscore)
 fi
 
 if [[ "${DRY_RUN:-false}" == "true" ]]; then

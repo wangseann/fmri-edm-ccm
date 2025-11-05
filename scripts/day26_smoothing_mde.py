@@ -48,17 +48,31 @@ from src.day24_subject_concat import (
     _resolve_cache_dir as day24_resolve_cache_dir,
 )
 from src.day22_category_mde import run_mde_for_pair, sanitize_name
+from src.preprocessing.huth import preprocess_huth_style
+from src import roi
 
 
-def update_rmse_summary(base_dir: Path, config_name: str, category: str, rmse: Dict[str, float]) -> None:
-    if not rmse:
+def update_span_metric_summary(
+    base_dir: Path,
+    config_name: str,
+    category: str,
+    metric_key: str,
+    values: Dict[str, float],
+    ylabel: str,
+    title_prefix: Optional[str] = None,
+) -> None:
+    if not values:
         return
-    summary_csv = base_dir / f"{config_name}_rmse_summary.csv"
+
+    metric_key = metric_key.lower()
+    title_prefix = title_prefix or ylabel
+    summary_csv = base_dir / f"{config_name}_{metric_key}_summary.csv"
+    column_names = [f"{metric_key}_train", f"{metric_key}_validation", f"{metric_key}_test"]
     if summary_csv.exists():
         df = pd.read_csv(summary_csv)
         df = df[df["category"] != category]
     else:
-        df = pd.DataFrame(columns=["category", "rmse_train", "rmse_validation", "rmse_test"])
+        df = pd.DataFrame(columns=["category", *column_names])
     df = pd.concat(
         [
             df,
@@ -66,9 +80,9 @@ def update_rmse_summary(base_dir: Path, config_name: str, category: str, rmse: D
                 [
                     {
                         "category": category,
-                        "rmse_train": rmse.get("train", np.nan),
-                        "rmse_validation": rmse.get("validation", np.nan),
-                        "rmse_test": rmse.get("test", np.nan),
+                        column_names[0]: values.get("train", np.nan),
+                        column_names[1]: values.get("validation", np.nan),
+                        column_names[2]: values.get("test", np.nan),
                     }
                 ]
             ),
@@ -83,22 +97,34 @@ def update_rmse_summary(base_dir: Path, config_name: str, category: str, rmse: D
         x = np.arange(len(categories))
         width = 0.25
         fig, ax = plt.subplots(figsize=(max(8, len(categories) * 1.4), 5))
-        ax.bar(x - width, df["rmse_train"], width, label="Train")
-        ax.bar(x, df["rmse_validation"], width, label="Validation")
-        ax.bar(x + width, df["rmse_test"], width, label="Test")
+        ax.bar(x - width, df[column_names[0]], width, label="Train")
+        ax.bar(x, df[column_names[1]], width, label="Validation")
+        ax.bar(x + width, df[column_names[2]], width, label="Test")
         ax.set_xticks(x)
         ax.set_xticklabels(categories, rotation=45, ha="right")
-        ax.set_ylabel("RMSE")
-        ax.set_title(f"RMSE by span – {config_name}")
+        ax.set_ylabel(ylabel)
+        ax.set_title(f"{title_prefix} by span – {config_name}")
         ax.legend()
         ax.grid(alpha=0.3, axis="y")
         fig.tight_layout()
-        fig.savefig(base_dir / f"{config_name}_rmse_summary.png", dpi=180)
+        fig.savefig(base_dir / f"{config_name}_{metric_key}_summary.png", dpi=180)
         plt.close(fig)
 
 
+def update_rmse_summary(base_dir: Path, config_name: str, category: str, rmse: Dict[str, float]) -> None:
+    update_span_metric_summary(
+        base_dir=base_dir,
+        config_name=config_name,
+        category=category,
+        metric_key="rmse",
+        values=rmse,
+        ylabel="RMSE",
+        title_prefix="RMSE",
+    )
+
+
 def refresh_combined_overlay(parent_dir: Path, config_name: str, subject: str, story: str) -> None:
-    records: List[Tuple[str, pd.DataFrame, Path]] = []
+    records: List[Tuple[str, pd.DataFrame, Path, Dict[str, Any]]] = []
     for category_dir in sorted(parent_dir.iterdir()):
         if not category_dir.is_dir():
             continue
@@ -112,7 +138,14 @@ def refresh_combined_overlay(parent_dir: Path, config_name: str, subject: str, s
             df = pd.read_csv(prediction_files[0])
         except Exception:
             continue
-        records.append((category_dir.name, df, config_dir))
+        summary_files = list(config_dir.glob("**/mde_*_summary.json"))
+        summary_data: Dict[str, Any] = {}
+        if summary_files:
+            try:
+                summary_data = json.loads(summary_files[0].read_text())
+            except Exception:
+                summary_data = {}
+        records.append((category_dir.name, df, config_dir, summary_data))
 
     if not records:
         return
@@ -124,21 +157,36 @@ def refresh_combined_overlay(parent_dir: Path, config_name: str, subject: str, s
     for ax in axes[len(records) :]:
         ax.axis("off")
 
-    for ax, (category_name, df, config_dir) in zip(axes, records):
-        ax.plot(df["time"], df["target"], label="Target", color="#1f77b4", linewidth=1.1)
-        ax.plot(df["time"], df["prediction"], label="MDE best", color="#d62728", linewidth=1.1, alpha=0.85)
+    global_shown: set[str] = set()
+
+    for ax, (category_name, df, config_dir, summary_data) in zip(axes, records):
+        if "time" in df.columns:
+            x_vals = df["time"].to_numpy(dtype=float)
+        elif "trim_index" in df.columns:
+            x_vals = df["trim_index"].to_numpy(dtype=float)
+        else:
+            x_vals = np.arange(len(df), dtype=float)
+        time_axis = x_vals
+        ax.plot(time_axis, df["target"], label="Target", color="#1f77b4", linewidth=1.1)
+        ax.plot(time_axis, df["prediction"], label="MDE best", color="#d62728", linewidth=1.1, alpha=0.85)
+        splits = summary_data.get("splits") if summary_data else None
+        if isinstance(splits, dict):
+            global_shown = add_split_background(ax, time_axis, splits, shown=global_shown)
         ax.set_title(category_name)
-        ax.set_xlabel("Time (s)")
+        x_label = "Time (s)" if "time" in df.columns else "Trimmed index"
+        ax.set_xlabel(x_label)
         ax.set_ylabel("Value")
         ax.grid(alpha=0.3)
 
         panel_dir = config_dir / "best_state_panels"
         panel_dir.mkdir(parents=True, exist_ok=True)
         fig_single, ax_single = plt.subplots(figsize=(6, 3))
-        ax_single.plot(df["time"], df["target"], label="Target", color="#1f77b4", linewidth=1.2)
-        ax_single.plot(df["time"], df["prediction"], label="MDE best", color="#d62728", linewidth=1.2, alpha=0.85)
+        ax_single.plot(time_axis, df["target"], label="Target", color="#1f77b4", linewidth=1.2)
+        ax_single.plot(time_axis, df["prediction"], label="MDE best", color="#d62728", linewidth=1.2, alpha=0.85)
+        if isinstance(splits, dict):
+            add_split_background(ax_single, time_axis, splits)
         ax_single.set_title(category_name)
-        ax_single.set_xlabel("Time (s)")
+        ax_single.set_xlabel(x_label)
         ax_single.set_ylabel("Value")
         ax_single.grid(alpha=0.3)
         ax_single.legend(loc="upper right")
@@ -151,6 +199,106 @@ def refresh_combined_overlay(parent_dir: Path, config_name: str, subject: str, s
     fig.tight_layout(rect=(0, 0, 1, 0.97))
     fig.savefig(parent_dir / f"{config_name}_best_state_overlays.png", dpi=200)
     plt.close(fig)
+
+
+def build_segment_bounds(total_rows: int, manifest_data: Optional[Dict[str, Any]] = None) -> List[Tuple[int, int]]:
+    """
+    Construct half-open segment boundaries for temporal preprocessing.
+    """
+    if total_rows <= 0:
+        return []
+    if not manifest_data:
+        return [(0, total_rows)]
+
+    bounds: List[Tuple[int, int]] = []
+    resets_raw = manifest_data.get("lag_reset_indices") or []
+    resets = sorted({int(r) for r in resets_raw if 0 < int(r) < total_rows})
+    if resets:
+        start = 0
+        for idx in resets:
+            bounds.append((start, idx))
+            start = idx
+        bounds.append((start, total_rows))
+        return bounds
+
+    boundaries_path = manifest_data.get("boundaries_path")
+    if boundaries_path and Path(boundaries_path).exists():
+        boundaries_df = pd.read_csv(boundaries_path)
+        for _, row in boundaries_df.iterrows():
+            start_idx = int(row.get("start_index", row.get("start", 0)))
+            end_idx = int(row.get("end_index", row.get("end", total_rows - 1))) + 1
+            start_idx = max(0, start_idx)
+            end_idx = min(total_rows, end_idx)
+            if start_idx < end_idx:
+                bounds.append((start_idx, end_idx))
+        if bounds:
+            return bounds
+
+    return [(0, total_rows)]
+
+
+def fill_segmentwise_nans(matrix: np.ndarray, segments: Sequence[Tuple[int, int]]) -> np.ndarray:
+    """Fill NaNs segment-wise using per-column means (fallback to zero)."""
+
+    arr = np.asarray(matrix, dtype=float)
+    squeeze = False
+    if arr.ndim == 1:
+        arr = arr[:, None]
+        squeeze = True
+    filled = arr.copy()
+    for start, end in segments:
+        seg = filled[start:end]
+        if seg.size == 0:
+            continue
+        mask = np.isnan(seg)
+        if not mask.any():
+            continue
+        col_means = np.nanmean(seg, axis=0)
+        col_means = np.where(np.isfinite(col_means), col_means, 0.0)
+        inds = np.where(mask)
+        seg[inds] = col_means[inds[1]]
+        filled[start:end] = seg
+    return filled[:, 0] if squeeze else filled
+
+
+def add_split_background(
+    ax,
+    time_axis: np.ndarray,
+    splits: Optional[Dict[str, Sequence[int]]],
+    *,
+    alpha: float = 0.10,
+    shown: Optional[set] = None,
+) -> set:
+    """Shade train/val/test spans on an axis using provided time axis."""
+
+    if shown is None:
+        shown = set()
+    if splits is None:
+        return shown
+
+    spans = [
+        ("Train", splits.get("train"), "#4CAF50"),
+        ("Validation", splits.get("val"), "#FFC107"),
+        ("Test", splits.get("test"), "#F44336"),
+    ]
+    n = len(time_axis)
+    for label, span, color in spans:
+        if span is None:
+            continue
+        if isinstance(span, (list, tuple)) and len(span) == 2:
+            start_idx, end_idx = int(span[0]), int(span[1])
+        else:
+            continue
+        start_idx = max(0, start_idx)
+        end_idx = min(n, end_idx)
+        if end_idx <= start_idx or start_idx >= n:
+            continue
+        start_val = time_axis[start_idx]
+        end_val = time_axis[end_idx - 1]
+        label_to_use = label if label not in shown else None
+        ax.axvspan(start_val, end_val, color=color, alpha=alpha, label=label_to_use)
+        shown.add(label)
+    return shown
 
 
 def parse_args() -> argparse.Namespace:
@@ -179,6 +327,55 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--concat-story-order", nargs="*", default=None, help="Optional explicit story order for concatenation.")
     parser.add_argument("--concat-force", action="store_true", help="Regenerate Day24 concatenation even if manifest exists.")
     parser.add_argument("--dry-run", action="store_true", help="List configs without running MDE.")
+    parser.add_argument(
+        "--use-cae",
+        action="store_true",
+        help="Select the MDE step using minimum cumulative absolute error (CAE) instead of maximum rho.",
+    )
+    parser.add_argument(
+        "--huth-preproc",
+        dest="huth_preproc",
+        action="store_true",
+        help="Apply Huth-style drift removal / trimming prior to MDE (default).",
+    )
+    parser.add_argument(
+        "--no-huth-preproc",
+        dest="huth_preproc",
+        action="store_false",
+        help="Disable Huth-style temporal preprocessing.",
+    )
+    parser.set_defaults(huth_preproc=True)
+    parser.add_argument(
+        "--preproc-window",
+        type=float,
+        default=120.0,
+        help="Savitzky–Golay window (seconds) used when estimating low-frequency drift.",
+    )
+    parser.add_argument(
+        "--preproc-trim",
+        type=float,
+        default=20.0,
+        help="Seconds trimmed from the start and end of each segment after detrending.",
+    )
+    parser.add_argument(
+        "--preproc-polyorder",
+        type=int,
+        default=2,
+        help="Polynomial order for the Savitzky–Golay filter.",
+    )
+    parser.add_argument(
+        "--preproc-zscore",
+        dest="preproc_zscore",
+        action="store_true",
+        help="Z-score each feature after detrending/trimming (default).",
+    )
+    parser.add_argument(
+        "--no-preproc-zscore",
+        dest="preproc_zscore",
+        action="store_false",
+        help="Skip z-scoring after temporal preprocessing.",
+    )
+    parser.set_defaults(preproc_zscore=True)
     return parser.parse_args()
 
 
@@ -409,6 +606,7 @@ def main() -> None:
 
     TR = float(cfg.get("TR", 2.0))
     prototype_power = float(categories_cfg.get("prototype_weight_power", 1.0))
+    n_parcels = int(cfg.get("n_parcels", 400))
     seconds_bin_width_default = float(categories_cfg.get("seconds_bin_width", 0.05))
     temporal_weighting_default = str(categories_cfg.get("temporal_weighting", "proportional")).lower()
 
@@ -429,6 +627,7 @@ def main() -> None:
     concat_category_df: Optional[pd.DataFrame] = None
     roi_matrix_concat: Optional[np.ndarray] = None
     seconds_bin_width_concat: Optional[float] = None
+    concat_segment_bounds: Optional[List[Tuple[int, int]]] = None
     story_concat_label = args.concat_story_label.strip() if args.concat_story_label else "all_stories"
     if use_concat:
         concat_features_root_arg = args.concat_features_root
@@ -481,6 +680,7 @@ def main() -> None:
         else:
             roi_matrix_concat = roi_store
         roi_matrix_concat = np.asarray(roi_matrix_concat, dtype=float)
+        concat_segment_bounds = build_segment_bounds(len(concat_category_df), manifest_data)
         if "start_sec" in concat_category_df.columns and "end_sec" in concat_category_df.columns and len(concat_category_df) > 1:
             seconds_bin_width_concat = float(concat_category_df["end_sec"].iloc[0] - concat_category_df["start_sec"].iloc[0])
             if not np.isfinite(seconds_bin_width_concat) or seconds_bin_width_concat <= 0:
@@ -489,6 +689,18 @@ def main() -> None:
             seconds_bin_width_concat = float(TR)
     else:
         story_concat_label = story
+
+    if use_concat:
+        if roi_matrix_concat is None or concat_category_df is None:
+            raise RuntimeError("Concatenated data not available after manifest load.")
+        base_roi_matrix = np.asarray(roi_matrix_concat, dtype=float)
+        base_segment_bounds = concat_segment_bounds or [(0, len(concat_category_df))]
+    else:
+        base_roi_matrix = np.asarray(
+            roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg),
+            dtype=float,
+        )
+        base_segment_bounds = [(0, base_roi_matrix.shape[0])]
 
     story_label_for_outputs = story_concat_label if use_concat else story
     if requested_figs_base is not None:
@@ -522,6 +734,10 @@ def main() -> None:
         print(f"\n=== {cfg_name}: method={smoothing_method} window={smoothing_seconds:.2f}s ===")
 
         config_features_root = ensure_dir(features_eval_base / safe_name)
+        cache_root = ensure_dir(config_features_root / "cache")
+        segment_bounds = [tuple(b) for b in base_segment_bounds]
+        roi_matrix_base_iter = np.asarray(base_roi_matrix, dtype=float).copy()
+        roi_matrix_base_iter = fill_segmentwise_nans(roi_matrix_base_iter, segment_bounds)
 
         if use_concat:
             story_for_run = story_concat_label
@@ -541,13 +757,12 @@ def main() -> None:
                 )
                 smoothed_vals = apply_smoothing_kernel(category_df[category_cols].to_numpy(dtype=float), kernel, pad_mode=pad_mode)
                 category_df.loc[:, category_cols] = smoothed_vals
+            cat_vals = category_df[category_cols].to_numpy(dtype=float)
+            cat_vals = fill_segmentwise_nans(cat_vals, segment_bounds)
+            category_df.loc[:, category_cols] = cat_vals
             category_dir = ensure_dir(config_features_root / "subjects" / subject / story_for_run)
-            category_df.to_csv(category_dir / "category_timeseries.csv", index=False)
-            cache_root = ensure_dir(config_features_root / "cache")
             cache_subject_dir = ensure_dir(cache_root / subject / story_for_run)
-            roi_output_path = cache_subject_dir / f"schaefer_{int(cfg.get('n_parcels', 400))}.npy"
-            if not roi_output_path.exists():
-                np.save(roi_output_path, roi_matrix_concat.astype(np.float32, copy=False))
+            roi_output_path = cache_subject_dir / f"schaefer_{n_parcels}.npy"
             local_paths = dict(paths_cfg)
             local_paths["cache"] = str(cache_root)
         else:
@@ -579,13 +794,93 @@ def main() -> None:
                 raise RuntimeError("No category columns generated.")
             if target_col not in category_cols:
                 raise RuntimeError(f"Target column {target_col} not found.")
+            cat_vals = category_df[category_cols].to_numpy(dtype=float)
+            cat_vals = fill_segmentwise_nans(cat_vals, segment_bounds)
+            category_df.loc[:, category_cols] = cat_vals
             category_dir = ensure_dir(config_features_root / "subjects" / subject / story_for_run)
-            category_df.to_csv(category_dir / "category_timeseries.csv", index=False)
-            local_paths = paths_cfg
+            cache_subject_dir = ensure_dir(cache_root / subject / story_for_run)
+            roi_output_path = cache_subject_dir / f"schaefer_{n_parcels}.npy"
+            local_paths = dict(paths_cfg)
+            local_paths["cache"] = str(cache_root)
+
+        raw_length = len(category_df)
+        cat_preproc = None
+
+        if args.huth_preproc:
+            cat_array = category_df[category_cols].to_numpy(dtype=float)
+            cat_preproc = preprocess_huth_style(
+                cat_array,
+                tr=TR,
+                window_s=args.preproc_window,
+                polyorder=args.preproc_polyorder,
+                trim_s=args.preproc_trim,
+                zscore=args.preproc_zscore,
+                segment_bounds=segment_bounds,
+                return_tr_indices=True,
+            )
+            roi_preproc = preprocess_huth_style(
+                roi_matrix_base_iter,
+                tr=TR,
+                window_s=args.preproc_window,
+                polyorder=args.preproc_polyorder,
+                trim_s=args.preproc_trim,
+                zscore=args.preproc_zscore,
+                segment_bounds=segment_bounds,
+                return_tr_indices=True,
+            )
+            if cat_preproc.cleaned.shape[0] != roi_preproc.cleaned.shape[0]:
+                raise RuntimeError(
+                    f"Preprocessed category series ({cat_preproc.cleaned.shape[0]}) and ROI matrix ({roi_preproc.cleaned.shape[0]}) length mismatch."
+                )
+            if cat_preproc.kept_indices is None or roi_preproc.kept_indices is None:
+                raise RuntimeError("Preprocessing must return kept indices; set return_tr_indices=True.")
+            cat_indices = np.concatenate(cat_preproc.kept_indices)
+            roi_indices = np.concatenate(roi_preproc.kept_indices)
+            if not np.array_equal(cat_indices, roi_indices):
+                raise RuntimeError("Category and ROI kept indices differ; segment parameters may be inconsistent.")
+            category_df = category_df.iloc[cat_indices].reset_index(drop=True)
+            category_df.loc[:, category_cols] = cat_preproc.cleaned
+            roi_matrix_clean = roi_preproc.cleaned.astype(np.float32, copy=False)
+        else:
+            roi_matrix_clean = roi_matrix_base_iter.astype(np.float32, copy=False)
+            cat_indices = np.arange(len(category_df), dtype=int)
+        category_df = category_df.reset_index(drop=True)
+        if "trim_index" in category_df.columns:
+            category_df["trim_index"] = np.arange(len(category_df), dtype=int)
+
+        clean_length = len(category_df)
+        if clean_length == 0:
+            raise RuntimeError("No samples remain after preprocessing; adjust trim/window parameters.")
+
+        rows_trimmed = max(0, raw_length - clean_length)
+        preproc_trim_tr = int(cat_preproc.trim_tr) if cat_preproc else 0
+        preproc_win_tr = int(cat_preproc.win_len_tr) if cat_preproc else 0
+        preproc_kept_ranges = (
+            [[int(s), int(e)] for s, e in cat_preproc.kept_ranges]
+            if cat_preproc
+            else [[int(s), int(e)] for s, e in segment_bounds]
+        )
+        preproc_kept_ranges_json = json.dumps(preproc_kept_ranges)
+
+        np.save(roi_output_path, roi_matrix_clean)
+        meta_path = category_dir / "huth_preproc_meta.json"
+        if args.huth_preproc and cat_preproc is not None:
+            meta_payload = {
+                "win_len_tr": preproc_win_tr,
+                "trim_tr": preproc_trim_tr,
+                "zscore": bool(args.preproc_zscore),
+                "segment_bounds": [[int(s), int(e)] for s, e in segment_bounds],
+                "kept_ranges": preproc_kept_ranges,
+                "original_rows": int(raw_length),
+                "clean_rows": int(clean_length),
+            }
+            meta_path.write_text(json.dumps(meta_payload, indent=2))
+        elif meta_path.exists():
+            meta_path.unlink()
 
         target_series = category_df[target_col].astype(float)
-        target_std = float(target_series.std(ddof=1))
-        target_range = float(target_series.max() - target_series.min())
+        target_std = float(target_series.std(ddof=1)) if len(target_series) > 1 else float("nan")
+        target_range = float(target_series.max() - target_series.min()) if not category_df.empty else float("nan")
         target_diff = target_series.diff().dropna()
         target_diff_mean = float(target_diff.abs().mean()) if not target_diff.empty else 0.0
 
@@ -632,6 +927,7 @@ def main() -> None:
             save_scatter=True,
             sample_steps=args.ccm_samples,
             plt_module=plt,
+            use_cae=args.use_cae,
         )
 
         selection_path = Path(summary["selection_csv"])
@@ -650,7 +946,14 @@ def main() -> None:
         unique_top5 = int(top5_variables.nunique()) if not top5_variables.empty else 0
 
         rmse_info = summary.get("rmse") or {}
+        rho_span = summary.get("rho_by_span") or {}
+        cae_span = summary.get("cae_by_span") or {}
         prediction_csv = summary.get("prediction_csv")
+        preproc_trim_tr = int(cat_preproc.trim_tr) if args.huth_preproc and cat_preproc is not None else 0
+        preproc_win_tr = int(cat_preproc.win_len_tr) if args.huth_preproc and cat_preproc is not None else 0
+        kept_ranges_for_log = cat_preproc.kept_ranges if args.huth_preproc and cat_preproc is not None else segment_bounds
+        preproc_kept_ranges_json = json.dumps([[int(s), int(e)] for s, e in kept_ranges_for_log])
+        rows_trimmed = raw_length - clean_length
 
         results.append(
             {
@@ -665,6 +968,7 @@ def main() -> None:
                 "temporal_weighting": temporal_weighting,
                 "top_variable": best_variable,
                 "top_rho": best_rho,
+                "top_cae": summary.get("best_cae", np.nan),
                 "rho_mean_top5": rho_mean_top5,
                 "rho_median_top5": rho_median_top5,
                 "rho_std_top5": rho_std_top5,
@@ -673,18 +977,52 @@ def main() -> None:
                 "target_std": target_std,
                 "target_range": target_range,
                 "target_diff_abs_mean": target_diff_mean,
+                "rows_raw": raw_length,
+                "rows_clean": clean_length,
+                "rows_trimmed": rows_trimmed,
+                "preproc_applied": bool(args.huth_preproc),
+                "preproc_trim_tr": preproc_trim_tr,
+                "preproc_win_tr": preproc_win_tr,
+                "preproc_kept_ranges": preproc_kept_ranges_json,
                 "selection_csv": str(selection_path),
                 "plot_dir": str(plot_dir),
                 "mde_dir": str(plot_dir / "day22_category_mde"),
                 "rmse_train": rmse_info.get("train", np.nan),
                 "rmse_validation": rmse_info.get("validation", np.nan),
                 "rmse_test": rmse_info.get("test", np.nan),
+                 "rho_train": rho_span.get("train", np.nan),
+                 "rho_validation": rho_span.get("validation", np.nan),
+                 "rho_test": rho_span.get("test", np.nan),
+                 "cae_train": cae_span.get("train", np.nan),
+                 "cae_validation": cae_span.get("validation", np.nan),
+                 "cae_test": cae_span.get("test", np.nan),
                 "prediction_csv": prediction_csv,
+                "selection_metric": summary.get("selection_metric", "rho"),
             }
         )
 
         if rmse_info:
             update_rmse_summary(figs_base.parent, safe_name, target_col, rmse_info)
+        if rho_span:
+            update_span_metric_summary(
+                figs_base.parent,
+                safe_name,
+                target_col,
+                metric_key="rho",
+                values=rho_span,
+                ylabel="Pearson rho",
+                title_prefix="rho",
+            )
+        if cae_span:
+            update_span_metric_summary(
+                figs_base.parent,
+                safe_name,
+                target_col,
+                metric_key="cae",
+                values=cae_span,
+                ylabel="CAE (Σ|residual|)",
+                title_prefix="CAE",
+            )
         if prediction_csv:
             refresh_combined_overlay(figs_base.parent, safe_name, subject, story_for_run)
 
@@ -705,6 +1043,28 @@ def main() -> None:
         "rmse_validation": "RMSE validation",
         "rmse_test": "RMSE test",
     }
+    if "top_cae" in results_df.columns and not results_df["top_cae"].isna().all():
+        metrics["top_cae"] = "Top CAE"
+    rho_split_cols = ["rho_train", "rho_validation", "rho_test"]
+    if all(col in results_df.columns for col in rho_split_cols):
+        if not results_df[rho_split_cols].isna().all().all():
+            metrics.update(
+                {
+                    "rho_train": "rho train",
+                    "rho_validation": "rho validation",
+                    "rho_test": "rho test",
+                }
+            )
+    cae_split_cols = ["cae_train", "cae_validation", "cae_test"]
+    if all(col in results_df.columns for col in cae_split_cols):
+        if not results_df[cae_split_cols].isna().all().all():
+            metrics.update(
+                {
+                    "cae_train": "CAE train",
+                    "cae_validation": "CAE validation",
+                    "cae_test": "CAE test",
+                }
+            )
     pivot_dir = ensure_dir(figs_base / "matrices")
     for metric_key, metric_label in metrics.items():
         matrix = results_df.pivot(index="smoothing_seconds", columns="method", values=metric_key)
