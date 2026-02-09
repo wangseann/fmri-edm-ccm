@@ -16,3 +16,11 @@ results/
 .pre-commit-cache/
 .pytest_cache/
 scripts/*.out
+
+
+/build/
+/**/__pycache__/
+/**/*.pyc
+/.virtual_documents/
+/notebooks/.virtual_documents/
+/src/fmri_edm_ccm.egg-info/
