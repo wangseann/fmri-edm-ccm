@@ -1,0 +1,342 @@
+Obtaining file:///flash/PaoU/seann/fmri-edm-ccm
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: numpy in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (2.3.4)
+Requirement already satisfied: pandas in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (2.3.3)
+Requirement already satisfied: scikit-learn in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (1.7.2)
+Requirement already satisfied: matplotlib in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (3.10.7)
+Requirement already satisfied: pyyaml in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (6.0.3)
+Requirement already satisfied: ipywidgets>=8.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (8.1.8)
+Requirement already satisfied: comm>=0.1.3 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.3)
+Requirement already satisfied: ipython>=6.1.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (9.7.0)
+Requirement already satisfied: traitlets>=4.3.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (5.14.3)
+Requirement already satisfied: widgetsnbextension~=4.0.14 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (4.0.15)
+Requirement already satisfied: jupyterlab_widgets~=3.0.15 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (3.0.16)
+Requirement already satisfied: decorator>=4.3.2 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (5.2.1)
+Requirement already satisfied: ipython-pygments-lexers>=1.0.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (1.1.1)
+Requirement already satisfied: jedi>=0.18.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.19.2)
+Requirement already satisfied: matplotlib-inline>=0.1.5 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.1)
+Requirement already satisfied: pexpect>4.3 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (4.9.0)
+Requirement already satisfied: prompt_toolkit<3.1.0,>=3.0.41 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (3.0.52)
+Requirement already satisfied: pygments>=2.11.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (2.19.2)
+Requirement already satisfied: stack_data>=0.6.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.6.3)
+Requirement already satisfied: typing_extensions>=4.6 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (4.15.0)
+Requirement already satisfied: wcwidth in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from prompt_toolkit<3.1.0,>=3.0.41->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.14)
+Requirement already satisfied: parso<0.9.0,>=0.8.4 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from jedi>=0.18.1->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.8.5)
+Requirement already satisfied: ptyprocess>=0.5 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from pexpect>4.3->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.7.0)
+Requirement already satisfied: executing>=1.2.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from stack_data>=0.6.0->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (2.2.1)
+Requirement already satisfied: asttokens>=2.1.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from stack_data>=0.6.0->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (3.0.0)
+Requirement already satisfied: pure-eval in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from stack_data>=0.6.0->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.3)
+Requirement already satisfied: contourpy>=1.0.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (1.3.3)
+Requirement already satisfied: cycler>=0.10 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (4.60.1)
+Requirement already satisfied: kiwisolver>=1.3.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (1.4.9)
+Requirement already satisfied: packaging>=20.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (25.0)
+Requirement already satisfied: pillow>=8 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (12.0.0)
+Requirement already satisfied: pyparsing>=3 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (3.2.5)
+Requirement already satisfied: python-dateutil>=2.7 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from python-dateutil>=2.7->matplotlib->fmri-edm-ccm==0.0.1) (1.17.0)
+Requirement already satisfied: pytz>=2020.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from pandas->fmri-edm-ccm==0.0.1) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from pandas->fmri-edm-ccm==0.0.1) (2025.2)
+Requirement already satisfied: scipy>=1.8.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from scikit-learn->fmri-edm-ccm==0.0.1) (1.16.3)
+Requirement already satisfied: joblib>=1.2.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from scikit-learn->fmri-edm-ccm==0.0.1) (1.5.2)
+Requirement already satisfied: threadpoolctl>=3.1.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from scikit-learn->fmri-edm-ccm==0.0.1) (3.6.0)
+Building wheels for collected packages: fmri-edm-ccm
+  Building editable for fmri-edm-ccm (pyproject.toml): started
+  Building editable for fmri-edm-ccm (pyproject.toml): finished with status 'done'
+  Created wheel for fmri-edm-ccm: filename=fmri_edm_ccm-0.0.1-0.editable-py3-none-any.whl size=2368 sha256=f903c37fc5eb991c343b6c81a7b174deb6916eedc4c87ae40df143d5d99f3c21
+  Stored in directory: /scratch/pip-ephem-wheel-cache-6r2zovgk/wheels/1d/eb/a1/c1fd967dff48be7865b785e5fdf542f597617ec444f71555e8
+Successfully built fmri-edm-ccm
+Installing collected packages: fmri-edm-ccm
+  Attempting uninstall: fmri-edm-ccm
+    Found existing installation: fmri-edm-ccm 0.0.1
+    Uninstalling fmri-edm-ccm-0.0.1:
+      Successfully uninstalled fmri-edm-ccm-0.0.1
+Successfully installed fmri-edm-ccm-0.0.1
+Running Day18 story-cache batch with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/run_story_cache_batch.py --config configs/demo.yaml --subjects UTS09 --stories adollshouse adventuresinsayingyes afatherscover againstthewind alternateithicatom avatar backsideofthestorm becomingindian beneaththemushroomcloud birthofanation bluehope breakingupintheageofgoogle buck catfishingstrangerstofindmyself cautioneating christmas1940 cocoonoflove comingofageondeathrow exorcism eyespy firetestforlove food forgettingfear fromboyhoodtofatherhood gangstersandcookies goingthelibertyway goldiethegoldfish golfclubbing gpsformylostidentity hangtime haveyoumethimyet howtodraw ifthishaircouldtalk inamoment itsabox jugglingandjesus kiksuya leavingbaghdad legacy life lifeanddeathontheoregontrail lifereimagined listo mayorofthefreaks metsmagic mybackseatviewofagreatromance myfathershands myfirstdaywiththeyankees naked notontheusualtour odetostepfather onlyonewaytofindout penpal quietfire reachingoutbetweenthebars shoppinginchina singlewomanseekingmanwich sloth souls stagefright stumblinginthedark superheroesjustforeachother sweetaspie swimmingwithastronauts thatthingonmyarm theadvancedbeginner theclosetthatateeverything thecurse thefreedomridersandme theinterview thepostmanalwayscalls theshower thetiniestbouquet thetriangleshirtwaistconnection threemonths thumbsup tildeath treasureisland undertheinfluence vixenandtheussr waitingtogo whenmothersbullyback wheretheressmoke wildwomenanddancingqueens
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/sklearn/utils/_set_output.py:316: UserWarning: After resampling the label image to the data image, the following labels were removed: {np.float32(257.0), np.float32(258.0), np.float32(261.0), np.float32(262.0), np.float32(263.0), np.float32(264.0), np.float32(265.0), np.float32(266.0), np.float32(267.0), np.float32(268.0), np.float32(269.0), np.float32(270.0), np.float32(391.0), np.float32(288.0), np.float32(289.0), np.float32(292.0), np.float32(56.0), np.float32(58.0), np.float32(188.0), np.float32(189.0), np.float32(61.0), np.float32(62.0), np.float32(64.0), np.float32(65.0), np.float32(66.0), np.float32(67.0), np.float32(68.0), np.float32(63.0), np.float32(317.0), np.float32(318.0), np.float32(82.0), np.float32(83.0), np.float32(84.0), np.float32(85.0), np.float32(113.0)}. Label image only contains 366 labels (including background).
+  data_to_wrap = f(self, X, *args, **kwargs)
+[INFO] Prepared 88 subject/story pairs.
+
+=== Building cache for UTS09 / adollshouse ===
+[INFO] Cache refreshed for UTS09/adollshouse
+
+=== Building cache for UTS09 / adventuresinsayingyes ===
+[INFO] Cache refreshed for UTS09/adventuresinsayingyes
+
+=== Building cache for UTS09 / afatherscover ===
+[ERROR] Failed to build cache for UTS09/afatherscover: Could not locate BOLD run for story "afatherscover" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / againstthewind ===
+[ERROR] Failed to build cache for UTS09/againstthewind: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / alternateithicatom ===
+[INFO] Cache refreshed for UTS09/alternateithicatom
+
+=== Building cache for UTS09 / avatar ===
+[INFO] Cache refreshed for UTS09/avatar
+
+=== Building cache for UTS09 / backsideofthestorm ===
+[INFO] Cache refreshed for UTS09/backsideofthestorm
+
+=== Building cache for UTS09 / becomingindian ===
+[INFO] Cache refreshed for UTS09/becomingindian
+
+=== Building cache for UTS09 / beneaththemushroomcloud ===
+[ERROR] Failed to build cache for UTS09/beneaththemushroomcloud: Could not locate BOLD run for story "beneaththemushroomcloud" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / birthofanation ===
+[ERROR] Failed to build cache for UTS09/birthofanation: Could not locate BOLD run for story "birthofanation" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / bluehope ===
+[ERROR] Failed to build cache for UTS09/bluehope: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / breakingupintheageofgoogle ===
+[INFO] Cache refreshed for UTS09/breakingupintheageofgoogle
+
+=== Building cache for UTS09 / buck ===
+[INFO] Cache refreshed for UTS09/buck
+
+=== Building cache for UTS09 / catfishingstrangerstofindmyself ===
+[INFO] Cache refreshed for UTS09/catfishingstrangerstofindmyself
+
+=== Building cache for UTS09 / cautioneating ===
+[ERROR] Failed to build cache for UTS09/cautioneating: Could not locate BOLD run for story "cautioneating" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / christmas1940 ===
+[INFO] Cache refreshed for UTS09/christmas1940
+
+=== Building cache for UTS09 / cocoonoflove ===
+[ERROR] Failed to build cache for UTS09/cocoonoflove: Could not locate BOLD run for story "cocoonoflove" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / comingofageondeathrow ===
+[ERROR] Failed to build cache for UTS09/comingofageondeathrow: Could not locate BOLD run for story "comingofageondeathrow" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / exorcism ===
+[INFO] Cache refreshed for UTS09/exorcism
+
+=== Building cache for UTS09 / eyespy ===
+[INFO] Cache refreshed for UTS09/eyespy
+
+=== Building cache for UTS09 / firetestforlove ===
+[ERROR] Failed to build cache for UTS09/firetestforlove: Could not locate BOLD run for story "firetestforlove" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / food ===
+[ERROR] Failed to build cache for UTS09/food: Could not locate BOLD run for story "food" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / forgettingfear ===
+[ERROR] Failed to build cache for UTS09/forgettingfear: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / fromboyhoodtofatherhood ===
+[ERROR] Failed to build cache for UTS09/fromboyhoodtofatherhood: Could not locate BOLD run for story "fromboyhoodtofatherhood" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / gangstersandcookies ===
+[ERROR] Failed to build cache for UTS09/gangstersandcookies: Could not locate BOLD run for story "gangstersandcookies" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / goingthelibertyway ===
+[INFO] Cache refreshed for UTS09/goingthelibertyway
+
+=== Building cache for UTS09 / goldiethegoldfish ===
+[ERROR] Failed to build cache for UTS09/goldiethegoldfish: Could not locate BOLD run for story "goldiethegoldfish" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / golfclubbing ===
+[ERROR] Failed to build cache for UTS09/golfclubbing: Could not locate BOLD run for story "golfclubbing" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / gpsformylostidentity ===
+[INFO] Cache refreshed for UTS09/gpsformylostidentity
+
+=== Building cache for UTS09 / hangtime ===
+[INFO] Cache refreshed for UTS09/hangtime
+
+=== Building cache for UTS09 / haveyoumethimyet ===
+[INFO] Cache refreshed for UTS09/haveyoumethimyet
+
+=== Building cache for UTS09 / howtodraw ===
+[INFO] Cache refreshed for UTS09/howtodraw
+
+=== Building cache for UTS09 / ifthishaircouldtalk ===
+[ERROR] Failed to build cache for UTS09/ifthishaircouldtalk: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / inamoment ===
+[INFO] Cache refreshed for UTS09/inamoment
+
+=== Building cache for UTS09 / itsabox ===
+[INFO] Cache refreshed for UTS09/itsabox
+
+=== Building cache for UTS09 / jugglingandjesus ===
+[ERROR] Failed to build cache for UTS09/jugglingandjesus: Could not locate BOLD run for story "jugglingandjesus" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / kiksuya ===
+[INFO] Cache refreshed for UTS09/kiksuya
+
+=== Building cache for UTS09 / leavingbaghdad ===
+[ERROR] Failed to build cache for UTS09/leavingbaghdad: Could not locate BOLD run for story "leavingbaghdad" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / legacy ===
+[INFO] Cache refreshed for UTS09/legacy
+
+=== Building cache for UTS09 / life ===
+[ERROR] Failed to build cache for UTS09/life: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / lifeanddeathontheoregontrail ===
+[INFO] Cache refreshed for UTS09/lifeanddeathontheoregontrail
+
+=== Building cache for UTS09 / lifereimagined ===
+[ERROR] Failed to build cache for UTS09/lifereimagined: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / listo ===
+[ERROR] Failed to build cache for UTS09/listo: Could not locate BOLD run for story "listo" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / mayorofthefreaks ===
+[ERROR] Failed to build cache for UTS09/mayorofthefreaks: Could not locate BOLD run for story "mayorofthefreaks" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / metsmagic ===
+[ERROR] Failed to build cache for UTS09/metsmagic: Could not locate BOLD run for story "metsmagic" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / mybackseatviewofagreatromance ===
+[ERROR] Failed to build cache for UTS09/mybackseatviewofagreatromance: Could not locate BOLD run for story "mybackseatviewofagreatromance" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / myfathershands ===
+[ERROR] Failed to build cache for UTS09/myfathershands: Could not locate BOLD run for story "myfathershands" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / myfirstdaywiththeyankees ===
+[INFO] Cache refreshed for UTS09/myfirstdaywiththeyankees
+
+=== Building cache for UTS09 / naked ===
+[INFO] Cache refreshed for UTS09/naked
+
+=== Building cache for UTS09 / notontheusualtour ===
+[ERROR] Failed to build cache for UTS09/notontheusualtour: Could not locate BOLD run for story "notontheusualtour" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / odetostepfather ===
+[INFO] Cache refreshed for UTS09/odetostepfather
+
+=== Building cache for UTS09 / onlyonewaytofindout ===
+[INFO] Cache refreshed for UTS09/onlyonewaytofindout
+
+=== Building cache for UTS09 / penpal ===
+[INFO] Cache refreshed for UTS09/penpal
+
+=== Building cache for UTS09 / quietfire ===
+[ERROR] Failed to build cache for UTS09/quietfire: Could not locate BOLD run for story "quietfire" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / reachingoutbetweenthebars ===
+[ERROR] Failed to build cache for UTS09/reachingoutbetweenthebars: Could not locate BOLD run for story "reachingoutbetweenthebars" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / shoppinginchina ===
+[INFO] Cache refreshed for UTS09/shoppinginchina
+
+=== Building cache for UTS09 / singlewomanseekingmanwich ===
+[INFO] Cache refreshed for UTS09/singlewomanseekingmanwich
+
+=== Building cache for UTS09 / sloth ===
+[INFO] Cache refreshed for UTS09/sloth
+
+=== Building cache for UTS09 / souls ===
+[INFO] Cache refreshed for UTS09/souls
+
+=== Building cache for UTS09 / stagefright ===
+[INFO] Cache refreshed for UTS09/stagefright
+
+=== Building cache for UTS09 / stumblinginthedark ===
+[ERROR] Failed to build cache for UTS09/stumblinginthedark: Atlas produced 365 parcels but expected 400.
+
+=== Building cache for UTS09 / superheroesjustforeachother ===
+[INFO] Cache refreshed for UTS09/superheroesjustforeachother
+
+=== Building cache for UTS09 / sweetaspie ===
+[INFO] Cache refreshed for UTS09/sweetaspie
+
+=== Building cache for UTS09 / swimmingwithastronauts ===
+[INFO] Cache refreshed for UTS09/swimmingwithastronauts
+
+=== Building cache for UTS09 / thatthingonmyarm ===
+[INFO] Cache refreshed for UTS09/thatthingonmyarm
+
+=== Building cache for UTS09 / theadvancedbeginner ===
+[ERROR] Failed to build cache for UTS09/theadvancedbeginner: Could not locate BOLD run for story "theadvancedbeginner" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / theclosetthatateeverything ===
+[INFO] Cache refreshed for UTS09/theclosetthatateeverything
+
+=== Building cache for UTS09 / thecurse ===
+[ERROR] Failed to build cache for UTS09/thecurse: Could not locate BOLD run for story "thecurse" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / thefreedomridersandme ===
+[INFO] Cache refreshed for UTS09/thefreedomridersandme
+
+=== Building cache for UTS09 / theinterview ===
+[ERROR] Failed to build cache for UTS09/theinterview: Could not locate BOLD run for story "theinterview" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / thepostmanalwayscalls ===
+[INFO] Cache refreshed for UTS09/thepostmanalwayscalls
+
+=== Building cache for UTS09 / theshower ===
+[ERROR] Failed to build cache for UTS09/theshower: Could not locate BOLD run for story "theshower" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / thetiniestbouquet ===
+[INFO] Cache refreshed for UTS09/thetiniestbouquet
+
+=== Building cache for UTS09 / thetriangleshirtwaistconnection ===
+[ERROR] Failed to build cache for UTS09/thetriangleshirtwaistconnection: Could not locate BOLD run for story "thetriangleshirtwaistconnection" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / threemonths ===
+[ERROR] Failed to build cache for UTS09/threemonths: Could not locate BOLD run for story "threemonths" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / thumbsup ===
+[INFO] Cache refreshed for UTS09/thumbsup
+
+=== Building cache for UTS09 / tildeath ===
+[INFO] Cache refreshed for UTS09/tildeath
+
+=== Building cache for UTS09 / treasureisland ===
+[INFO] Cache refreshed for UTS09/treasureisland
+
+=== Building cache for UTS09 / undertheinfluence ===
+[INFO] Cache refreshed for UTS09/undertheinfluence
+
+=== Building cache for UTS09 / vixenandtheussr ===
+[ERROR] Failed to build cache for UTS09/vixenandtheussr: Could not locate BOLD run for story "vixenandtheussr" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09
+
+=== Building cache for UTS09 / waitingtogo ===
+[INFO] Cache refreshed for UTS09/waitingtogo
+
+=== Building cache for UTS09 / whenmothersbullyback ===
+[INFO] Cache refreshed for UTS09/whenmothersbullyback
+
+=== Building cache for UTS09 / wheretheressmoke (run-1) ===
+[INFO] Cache refreshed for UTS09/wheretheressmoke (run-1)
+
+=== Building cache for UTS09 / wheretheressmoke (run-2) ===
+[INFO] Cache refreshed for UTS09/wheretheressmoke (run-2)
+
+=== Building cache for UTS09 / wheretheressmoke (run-3) ===
+[INFO] Cache refreshed for UTS09/wheretheressmoke (run-3)
+
+=== Building cache for UTS09 / wheretheressmoke (run-4) ===
+[INFO] Cache refreshed for UTS09/wheretheressmoke (run-4)
+
+=== Building cache for UTS09 / wheretheressmoke (run-5) ===
+[INFO] Cache refreshed for UTS09/wheretheressmoke (run-5)
+
+=== Building cache for UTS09 / wildwomenanddancingqueens ===
+[ERROR] Failed to build cache for UTS09/wildwomenanddancingqueens: Could not locate BOLD run for story "wildwomenanddancingqueens" under /bucket/PaoU/seann/openneuro/ds003020/sub-UTS09

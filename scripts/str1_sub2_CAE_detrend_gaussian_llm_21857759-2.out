@@ -1,0 +1,23 @@
+Running Day26 smoothing sweep (LLM backend) with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS02 --story wheretheressmoke --target cat_abstract --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_day26_eval_cli_llm/wheretheressmoke/run-1/cat_abstract_ --category-embedding-backend llm --lm-embedding-path embeddings/gpt_tokens.npz --lm-lowercase-tokens --bold-run run-1 --figs-base figs_new/UTS02/wheretheressmoke/run-1/day26_smoothing_cli_MDE_llm_CAE/cat_abstract_ --use-cae --methods gaussian --windows 20.0 --max-predictors 90 --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+/flash/PaoU/seann/fmri-edm-ccm/src/category_builder.py:518: UserWarning: Day16 trimmed PCs not found; skipping auto-alignment.
+  warnings.warn("Day16 trimmed PCs not found; skipping auto-alignment.")
+Configured 1 smoothing settings for UTS02/wheretheressmoke (run-1).
+
+=== gauss_20p00: method=gaussian window=20.00s ===
+=== Category build (backend=llm) for UTS02 / wheretheressmoke ===
+Loaded 2308 transcript events.
+TR edges: 302 (n_tr=301) spanning 602.00 seconds.
+Tokens with embeddings: 2176/2308 (OOV rate=5.72%).
+Canonical bins without tokens: 0/12039
+TRs without tokens: 0/301
+   tr_index  start_sec  end_sec  ...  cat_temporal  cat_violent  cat_visual
+0         0        0.0      2.0  ...      0.456507     0.460796    0.439562
+1         1        2.0      4.0  ...      0.453675     0.461342    0.433529
+2         2        4.0      6.0  ...      0.450966     0.458805    0.431882
+3         3        6.0      8.0  ...      0.454254     0.462396    0.437556
+4         4        8.0     10.0  ...      0.456283     0.462744    0.441665
+
+[5 rows x 15 columns]
+Saved category plot to /flash/PaoU/seann/fmri-edm-ccm/figs_new/UTS02/wheretheressmoke/run-1/day26_smoothing_cli_MDE_llm_CAE/cat_abstract_/gauss_20p00/category_timeseries_overview.png
+slurmstepd-deigo010927: error: *** JOB 21857762 ON deigo010927 CANCELLED AT 2025-12-28T20:33:22 ***

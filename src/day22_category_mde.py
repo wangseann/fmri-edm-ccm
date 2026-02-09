@@ -10,6 +10,7 @@ import pandas as pd
 
 from MDE import MDE
 from src import roi
+import warnings
 
 try:
     from nilearn import plotting as nilearn_plotting
@@ -678,6 +679,7 @@ def save_candidate_roi_view(
     if plotting_module is None:
         plotting_module = nilearn_plotting
     if plotting_module is None:
+        warnings.warn("Skipping candidate ROI HTML: nilearn is not available in the environment.")
         return None
 
     roi_ids = []
@@ -695,6 +697,7 @@ def save_candidate_roi_view(
 
     centroid_path = resolve_centroid_path(paths_cfg, n_parcels)
     if centroid_path is None or not centroid_path.exists():
+        warnings.warn(f"Skipping candidate ROI HTML: centroid file not found for n_parcels={n_parcels}.")
         return None
 
     cent = pd.read_csv(centroid_path)
@@ -930,6 +933,7 @@ def run_mde_for_pair(
     cae_array: Optional[np.ndarray] = None
     target_array = target_trim.to_numpy(dtype=float)
     train_start, train_end = splits["train"]
+    val_start, val_end = splits["val"]
 
     if len(mde.MDEcolumns) > 0:
         if train_end <= train_start:
@@ -957,9 +961,16 @@ def run_mde_for_pair(
                     y_train = target_array[train_start:train_end]
                     if X_train.size == 0:
                         raise ValueError("Empty design matrix for CAE computation.")
+                    if val_end <= val_start:
+                        raise ValueError("Validation span is empty; cannot compute validation CAE.")
+
+                    # Fit on TRAIN only
                     coefs, *_ = np.linalg.lstsq(X_train, y_train, rcond=None)
                     y_pred_full = X @ coefs
-                    cae_val = float(np.nansum(np.abs(target_array - y_pred_full)))
+
+                    # 🔑 CAE on VALIDATION ONLY
+                    resid_val = target_array[val_start:val_end] - y_pred_full[val_start:val_end]
+                    cae_val = float(np.nansum(np.abs(resid_val)))
                 except (np.linalg.LinAlgError, ValueError, KeyError) as exc:
                     warnings.warn(f"Failed to compute CAE at step {idx + 1}: {exc}")
                     cae_val = float("nan")
@@ -1071,9 +1082,27 @@ def run_mde_for_pair(
         plt_module=plt_module,
     )
 
-    rmse_info = metrics_info.get("rmse", {})
-    rho_split = metrics_info.get("rho", {})
-    cae_split = metrics_info.get("cae", {})
+    rmse_info_linear = metrics_info.get("rmse", {})
+    rho_split_linear = metrics_info.get("rho", {})
+    cae_split_linear = metrics_info.get("cae", {})
+
+    # Prefer the span-specific linear diagnostics for reporting; fall back to the
+    # overall best metric if the split metrics are missing/invalid.
+    selection_rho_by_span = {
+        key: val
+        for key, val in (rho_split_linear or {}).items()
+        if val is not None and np.isfinite(val)
+    }
+    if not selection_rho_by_span and np.isfinite(best_rho):
+        selection_rho_by_span = {key: best_rho for key in ("train", "validation", "test")}
+
+    selection_cae_by_span = {
+        key: val
+        for key, val in (cae_split_linear or {}).items()
+        if val is not None and np.isfinite(val)
+    }
+    if not selection_cae_by_span and np.isfinite(best_cae):
+        selection_cae_by_span = {key: best_cae for key in ("train", "validation", "test")}
 
     if y_pred is not None and plt_module is not None:
         plot_prediction_overlay(
@@ -1085,7 +1114,7 @@ def run_mde_for_pair(
             prediction_series=y_pred.astype(float),
             splits=splits,
             target_name=target_column,
-            rmse_info=rmse_info,
+            rmse_info=rmse_info_linear,
             plt_module=plt_module,
         )
         plot_prediction_scatter(
@@ -1148,9 +1177,13 @@ def run_mde_for_pair(
         "candidate_roi_html": str(candidate_html) if candidate_html else None,
         "selection_csv": str(output_csv),
         "input_csv": str(input_csv) if save_input_frame else None,
-        "rmse": rmse_info,
-        "rho_by_span": rho_split,
-        "cae_by_span": cae_split,
+        # Selection-metric view for rho/cae; RMSE remains linear (no MDE RMSE metric)
+        "rmse": rmse_info_linear,
+        "rho_by_span": selection_rho_by_span,
+        "cae_by_span": selection_cae_by_span,
+        # Linear diagnostics retained for transparency
+        "rho_by_span_linear": rho_split_linear,
+        "cae_by_span_linear": cae_split_linear,
         "prediction_csv": str(prediction_csv) if prediction_csv else None,
         "splits": {
             key: [int(span[0]), int(span[1])] if span is not None else None

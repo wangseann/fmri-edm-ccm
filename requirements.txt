@@ -8,3 +8,5 @@ librosa
 soundfile
 textgrid
 gensim
+h5py
+pyyaml

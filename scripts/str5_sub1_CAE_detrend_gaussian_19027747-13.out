@@ -1,0 +1,27 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS01 --story odetostepfather --target cat_temporal --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_new_day26_eval_cli_90_detrend_gaussianCAE/odetostepfather/cat_temporal_ --figs-base figs_new/UTS01/odetostepfather/day26_smoothing_cli_MDE90step_detrend_gaussian_CAE/cat_temporal_ --use-cae --methods gaussian --windows 40.0 --max-predictors 90 --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+/flash/PaoU/seann/fmri-edm-ccm/src/day19_category_builder.py:883: UserWarning: Day16 trimmed PCs not found; skipping auto-alignment.
+  warnings.warn("Day16 trimmed PCs not found; skipping auto-alignment.")
+Configured 1 smoothing settings for UTS01/odetostepfather.
+
+=== gauss_40p00: method=gaussian window=40.00s ===
+=== Day19 category build for UTS01 / odetostepfather ===
+Loaded 3295 transcript events.
+TR edges: 416 (n_tr=415) spanning 830.00 seconds.
+Loaded English1000 embeddings from /bucket/PaoU/seann/openneuro/ds003020/derivative/english1000sm.hf5 (vocab=10470).
+Loaded Word2Vec fallback from embeddings/GoogleNews-vectors-negative300.bin.
+Applied fallback transform from embeddings/fallback_to_english1000.npz.
+Loaded 12 CSV-driven categories from /flash/PaoU/seann/fmri-edm-ccm/configs/cluster_words.csv: ['abstract', 'communal', 'emotional', 'locational', 'mental', 'numeric', 'professional', 'social', 'tactile', 'temporal', 'violent', 'visual']
+Tokens with embeddings: 3017/3295 (OOV rate=8.44%).
+Canonical bins without tokens: 45/16563
+TRs without tokens: 0/415
+   tr_index  start_sec  end_sec  ...  cat_temporal  cat_violent  cat_visual
+0         0        0.0      2.0  ...      0.065216     0.136447   -0.064099
+1         1        2.0      4.0  ...      0.071454     0.145702   -0.068190
+2         2        4.0      6.0  ...      0.073611     0.152413   -0.061113
+3         3        6.0      8.0  ...      0.087554     0.162487   -0.061056
+4         4        8.0     10.0  ...      0.095150     0.166577   -0.059923
+
+[5 rows x 15 columns]
+Saved category plot to /flash/PaoU/seann/fmri-edm-ccm/figs_new/UTS01/odetostepfather/day26_smoothing_cli_MDE90step_detrend_gaussian_CAE/cat_temporal_/gauss_40p00/category_timeseries_overview.png
+slurmstepd-deigo010931: error: *** JOB 19031633 ON deigo010931 CANCELLED AT 2025-12-04T05:17:57 DUE TO TIME LIMIT ***

@@ -1,0 +1,61 @@
+Obtaining file:///flash/PaoU/seann/fmri-edm-ccm
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: numpy in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (2.3.4)
+Requirement already satisfied: pandas in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (2.3.3)
+Requirement already satisfied: scikit-learn in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (1.7.2)
+Requirement already satisfied: matplotlib in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (3.10.7)
+Requirement already satisfied: pyyaml in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (6.0.3)
+Requirement already satisfied: ipywidgets>=8.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from fmri-edm-ccm==0.0.1) (8.1.8)
+Requirement already satisfied: comm>=0.1.3 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.3)
+Requirement already satisfied: ipython>=6.1.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (9.7.0)
+Requirement already satisfied: traitlets>=4.3.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (5.14.3)
+Requirement already satisfied: widgetsnbextension~=4.0.14 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (4.0.15)
+Requirement already satisfied: jupyterlab_widgets~=3.0.15 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (3.0.16)
+Requirement already satisfied: decorator>=4.3.2 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (5.2.1)
+Requirement already satisfied: ipython-pygments-lexers>=1.0.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (1.1.1)
+Requirement already satisfied: jedi>=0.18.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.19.2)
+Requirement already satisfied: matplotlib-inline>=0.1.5 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.1)
+Requirement already satisfied: pexpect>4.3 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (4.9.0)
+Requirement already satisfied: prompt_toolkit<3.1.0,>=3.0.41 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (3.0.52)
+Requirement already satisfied: pygments>=2.11.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (2.19.2)
+Requirement already satisfied: stack_data>=0.6.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.6.3)
+Requirement already satisfied: typing_extensions>=4.6 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (4.15.0)
+Requirement already satisfied: wcwidth in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from prompt_toolkit<3.1.0,>=3.0.41->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.14)
+Requirement already satisfied: parso<0.9.0,>=0.8.4 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from jedi>=0.18.1->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.8.5)
+Requirement already satisfied: ptyprocess>=0.5 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from pexpect>4.3->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.7.0)
+Requirement already satisfied: executing>=1.2.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from stack_data>=0.6.0->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (2.2.1)
+Requirement already satisfied: asttokens>=2.1.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from stack_data>=0.6.0->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (3.0.0)
+Requirement already satisfied: pure-eval in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from stack_data>=0.6.0->ipython>=6.1.0->ipywidgets>=8.0->fmri-edm-ccm==0.0.1) (0.2.3)
+Requirement already satisfied: contourpy>=1.0.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (1.3.3)
+Requirement already satisfied: cycler>=0.10 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (4.60.1)
+Requirement already satisfied: kiwisolver>=1.3.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (1.4.9)
+Requirement already satisfied: packaging>=20.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (25.0)
+Requirement already satisfied: pillow>=8 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (12.0.0)
+Requirement already satisfied: pyparsing>=3 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (3.2.5)
+Requirement already satisfied: python-dateutil>=2.7 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from matplotlib->fmri-edm-ccm==0.0.1) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from python-dateutil>=2.7->matplotlib->fmri-edm-ccm==0.0.1) (1.17.0)
+Requirement already satisfied: pytz>=2020.1 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from pandas->fmri-edm-ccm==0.0.1) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from pandas->fmri-edm-ccm==0.0.1) (2025.2)
+Requirement already satisfied: scipy>=1.8.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from scikit-learn->fmri-edm-ccm==0.0.1) (1.16.3)
+Requirement already satisfied: joblib>=1.2.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from scikit-learn->fmri-edm-ccm==0.0.1) (1.5.2)
+Requirement already satisfied: threadpoolctl>=3.1.0 in /flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages (from scikit-learn->fmri-edm-ccm==0.0.1) (3.6.0)
+Building wheels for collected packages: fmri-edm-ccm
+  Building editable for fmri-edm-ccm (pyproject.toml): started
+  Building editable for fmri-edm-ccm (pyproject.toml): finished with status 'done'
+  Created wheel for fmri-edm-ccm: filename=fmri_edm_ccm-0.0.1-0.editable-py3-none-any.whl size=2368 sha256=635b96084db144949fc2624d56e4fe5581ab03a9203d29c190c02db3ec74829c
+  Stored in directory: /scratch/pip-ephem-wheel-cache-ohs_gi3a/wheels/1d/eb/a1/c1fd967dff48be7865b785e5fdf542f597617ec444f71555e8
+Successfully built fmri-edm-ccm
+Installing collected packages: fmri-edm-ccm
+  Attempting uninstall: fmri-edm-ccm
+    Found existing installation: fmri-edm-ccm 0.0.1
+    Uninstalling fmri-edm-ccm-0.0.1:
+ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/__editable__.fmri_edm_ccm-0.0.1.pth'
+

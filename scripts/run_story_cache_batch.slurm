@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=se-wang@oist.jp
-#SBATCH --array=0
+#SBATCH --array=3
 
 set -euo pipefail
 
@@ -16,13 +16,14 @@ PROJECT_ROOT=/flash/PaoU/seann/fmri-edm-ccm
 module purge
 module load python/3.11
 source "$PROJECT_ROOT/.venv/bin/activate"
+pip install --no-cache-dir -e "$PROJECT_ROOT"
 
 export TMPDIR="/scratch/$USER/${SLURM_JOB_ID}"
 export XDG_CACHE_HOME="$TMPDIR/.cache"
 export MPLCONFIGDIR="$TMPDIR/.mpl"
 mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$MPLCONFIGDIR"
 
-SUBJECT_LIST=(${SUBJECT_LIST:-UTS01})
+SUBJECT_LIST=(${SUBJECT_LIST:-UTS01 UTS02 UTS03 UTS04 UTS05 UTS06 UTS07 UTS08 UTS09})
 INDEX=${SLURM_ARRAY_TASK_ID}
 SUBJECT=${SUBJECT_LIST[$INDEX]}
 

@@ -13,6 +13,9 @@ DRY_RUN=${DRY_RUN:-false}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Ensure the repository root is on PYTHONPATH so `src` imports succeed
+export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
+
 declare -a SUBJECT_ARRAY=()
 declare -a STORY_ARRAY=()
 

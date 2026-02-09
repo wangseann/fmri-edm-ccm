@@ -5,7 +5,9 @@ src/__init__.py
 src/align_fallback_embeddings.py
 src/baselines.py
 src/build_story_cache.py
+src/category_builder.py
 src/ccm.py
+src/day19_category_builder.py
 src/day22_category_mde.py
 src/day24_subject_concat.py
 src/day25_bleed_correction.py
@@ -31,6 +33,9 @@ src/fmri_edm_ccm.egg-info/SOURCES.txt
 src/fmri_edm_ccm.egg-info/dependency_links.txt
 src/fmri_edm_ccm.egg-info/requires.txt
 src/fmri_edm_ccm.egg-info/top_level.txt
+src/preprocessing/__init__.py
+src/preprocessing/huth.py
+tests/test_category_builder_llm.py
 tests/test_ccm.py
 tests/test_embed.py
 tests/test_forecast.py

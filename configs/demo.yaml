@@ -37,6 +37,7 @@ paths:
   figs: figs
   atlas_root: parcellations/Parcellations/MNI
   atlas_file: parcellations/Parcellations/MNI/Schaefer2018_400Parcels_7Networks_order_FSLMNI152_2mm.nii.gz
+  featurestest: featuresqaemb  # root for QAEmb outputs (or set your own)
 E_univ: 3
 E_mult: 5
 simplex_k: 15
@@ -138,3 +139,16 @@ categories:
     binary: true
     transform_path: embeddings/fallback_to_english1000.npz
     label: word2vec
+qa_emb:
+  questions_path: configs/qaemb_questions.json
+  checkpoint: meta-llama/Meta-Llama-3-8B-Instruct
+  ngram_size: 10
+  use_cache: true
+  seconds_bin_width: 0.05
+  smoothing_seconds: 1.0
+  smoothing_method: moving_average      # or gaussian
+  gaussian_sigma_seconds: 0.5           # used if gaussian
+  smoothing_pad_mode: reflect
+  save_outputs: true
+  batch_size: 128
+  hf_token: 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            # optional; else set env var

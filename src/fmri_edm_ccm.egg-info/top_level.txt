@@ -2,7 +2,9 @@ __init__
 align_fallback_embeddings
 baselines
 build_story_cache
+category_builder
 ccm
+day19_category_builder
 day22_category_mde
 day24_subject_concat
 day25_bleed_correction
@@ -14,6 +16,7 @@ features
 init
 io_ds003020
 plots
+preprocessing
 qc_viz
 roi
 run_demo

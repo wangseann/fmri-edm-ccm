@@ -39,6 +39,7 @@ class CacheArtifacts:
     textgrid_path: Optional[str]
     semantic_source: Optional[str]
     semantic_components: Optional[int]
+    run_label: Optional[str] = None
 
 
 def _normalize_subject(sub: str) -> str:
@@ -49,7 +50,7 @@ def _resolve_story_key(story: str) -> str:
     return story.lower().replace("-", "").replace("_", "")
 
 
-def _find_bold_path(data_root: Path, sub: str, story: str) -> Path:
+def _find_bold_path(data_root: Path, sub: str, story: str, run_token: Optional[str] = None) -> Path:
     sub_dir = data_root / _normalize_subject(sub)
     if not sub_dir.exists():
         raise FileNotFoundError(f"Subject directory not found: {sub_dir}")
@@ -70,6 +71,11 @@ def _find_bold_path(data_root: Path, sub: str, story: str) -> Path:
     if not matches:
         candidates = sorted(sub_dir.glob("**/*bold.nii.gz"))
         matches = _match(candidates)
+    if run_token:
+        run_token = run_token.lower()
+        matches = [p for p in matches if run_token in p.name.lower()]
+        if not matches:
+            raise FileNotFoundError(f'Could not locate BOLD run "{run_token}" for story "{story}" under {sub_dir}')
     if not matches:
         raise FileNotFoundError(f'Could not locate BOLD run for story "{story}" under {sub_dir}')
     return matches[0]
@@ -153,10 +159,15 @@ def build_story_cache(
     subject: Optional[str],
     story: Optional[str],
     semantic_components_override: Optional[int] = None,
+    *,
+    story_cache_label: Optional[str] = None,
+    bold_run: Optional[str] = None,
 ) -> Path:
     cfg = yaml.safe_load(config_path.read_text())
     subject = subject or cfg["subject"]
     story = story or cfg["story"]
+    story_cache_label = (story_cache_label or story).strip()
+    bold_run = bold_run.strip() if bold_run else None
     tr = float(cfg["TR"])
     n_parcels = int(cfg["n_parcels"])
     semantic_components = semantic_components_override if semantic_components_override is not None else cfg.get("pca_components")
@@ -168,7 +179,7 @@ def build_story_cache(
     data_root = Path(paths_cfg["data_root"])
     cache_root = Path(paths_cfg.get("cache", "data_cache"))
 
-    bold_path = _find_bold_path(data_root, subject, story)
+    bold_path = _find_bold_path(data_root, subject, story, run_token=bold_run)
     wav_path = _resolve_audio_path(data_root, story)
     textgrid_path = _resolve_textgrid_path(data_root, story)
     english_loader = _resolve_english_loader(data_root, paths_cfg)
@@ -192,6 +203,12 @@ def build_story_cache(
     n_tr_bold = bold_img.shape[-1]
     driver_len = driver_series.n_tr
 
+    cache_dir_base = cache_root / subject / story_cache_label
+    if bold_run:
+        cache_dir = cache_dir_base / bold_run
+    else:
+        cache_dir = cache_dir_base
+
     if n_tr_bold != driver_len:
         min_len = min(n_tr_bold, driver_len)
         driver_series.envelope = driver_series.envelope[:min_len]
@@ -201,7 +218,6 @@ def build_story_cache(
         if driver_series.phoneme_rate is not None:
             driver_series.phoneme_rate = driver_series.phoneme_rate[:min_len]
         data = bold_img.get_fdata()[..., :min_len]
-        cache_dir = Path(paths_cfg.get("cache", "data_cache")) / subject / story
         cache_dir.mkdir(parents=True, exist_ok=True)
         temp_path = cache_dir / "bold_trimmed.nii.gz"
         nib.Nifti1Image(data, bold_img.affine, bold_img.header).to_filename(str(temp_path))
@@ -211,7 +227,6 @@ def build_story_cache(
     roi_series = _extract_roi_timeseries(bold_path, atlas_path, tr, n_parcels)
     env, word_rate, semantic = ensure_same_length(driver_series.envelope, driver_series.word_rate, driver_series.semantic)
 
-    cache_dir = cache_root / subject / story
     _save_npy(cache_dir / "envelope_TR.npy", env)
     _save_npy(cache_dir / "wordrate_TR.npy", word_rate)
     _save_npy(cache_dir / "english1000_TR.npy", semantic)
@@ -236,7 +251,7 @@ def build_story_cache(
 
     meta = CacheArtifacts(
         subject=subject,
-        story=story,
+        story=story_cache_label,
         tr=tr,
         n_tr_audio=driver_series.n_tr,
         n_tr_bold=n_tr_bold,
@@ -246,6 +261,7 @@ def build_story_cache(
         textgrid_path=str(textgrid_path) if textgrid_path else None,
         semantic_source=str(english_loader.h5_path) if english_loader else None,
         semantic_components=int(semantic.shape[1]),
+        run_label=bold_run,
     )
     _save_meta(cache_dir / "cache_meta.json", meta)
     return cache_dir
@@ -256,6 +272,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="configs/demo.yaml", help="Path to YAML config.")
     parser.add_argument("--subject", help="Override subject in config (optional).")
     parser.add_argument("--story", help="Override story in config (optional).")
+    parser.add_argument("--run-label", help="Optional run token (e.g., run-2) to select a specific BOLD file.")
+    parser.add_argument(
+        "--story-cache-label",
+        help="Optional directory label for the cache (defaults to story; run label, if provided, is appended as a subdirectory).",
+    )
     parser.add_argument("--semantic-components", type=int, help="Override semantic components (0 for full embedding).")
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility.")
     return parser.parse_args()
@@ -264,7 +285,14 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     set_seed(args.seed)
-    cache_dir = build_story_cache(Path(args.config), args.subject, args.story, args.semantic_components)
+    cache_dir = build_story_cache(
+        Path(args.config),
+        args.subject,
+        args.story,
+        args.semantic_components,
+        story_cache_label=args.story_cache_label,
+        bold_run=args.run_label,
+    )
     print(f"Cache written to {cache_dir}")
 
 

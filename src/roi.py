@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import pickle
 
@@ -35,8 +35,11 @@ def resolve_schaefer_atlas_path(
     return atlas
 
 
-def _story_cache(paths: dict, sub: str, story: str) -> Path:
-    return Path(paths.get("cache", "data_cache")) / sub / story
+def _story_cache(paths: dict, sub: str, story: str, run: Optional[str] = None) -> Path:
+    base = Path(paths.get("cache", "data_cache")) / sub / story
+    if run:
+        return base / run
+    return base
 
 
 def _infer_parcels(paths: dict, sub: str, story: str) -> int:
@@ -48,8 +51,8 @@ def _infer_parcels(paths: dict, sub: str, story: str) -> int:
     raise FileNotFoundError(f"Could not infer parcel count in {cache_dir}")
 
 
-def load_schaefer_timeseries_TR(sub: str, story: str, n_parcels: int, paths: dict) -> np.ndarray:
-    path = _story_cache(paths, sub, story) / f"schaefer_{n_parcels}.npy"
+def load_schaefer_timeseries_TR(sub: str, story: str, n_parcels: int, paths: dict, run: Optional[str] = None) -> np.ndarray:
+    path = _story_cache(paths, sub, story, run) / f"schaefer_{n_parcels}.npy"
     if not path.exists():
         raise FileNotFoundError(f"Missing Schaefer timeseries cache: {path}")
     data = np.load(path)

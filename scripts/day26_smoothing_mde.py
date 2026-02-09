@@ -34,9 +34,13 @@ for extra in (pyedm_src, mde_src):
 
 from src.utils import load_yaml
 from src.day19_category_builder import (
-    generate_category_time_series,
+    generate_category_time_series as generate_category_time_series_day19,
     build_smoothing_kernel,
     apply_smoothing_kernel,
+)
+from src.category_builder import (
+    generate_category_time_series as generate_category_time_series_llm,
+    get_embedding_backend,
 )
 from src.day24_subject_concat import (
     build_story_inventory,
@@ -306,6 +310,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, default=Path("configs/demo.yaml"), help="Path to YAML config.")
     parser.add_argument("--subject", required=True, help="Subject ID, e.g. UTS01.")
     parser.add_argument("--story", required=True, help="Story ID, e.g. wheretheressmoke.")
+    parser.add_argument(
+        "--bold-run",
+        type=str,
+        default=None,
+        help="Optional run token (e.g., run-2) for selecting a specific cached BOLD timeseries.",
+    )
     parser.add_argument("--target", default="cat_abstract", help="Category column to model.")
     parser.add_argument("--window-start", type=float, default=0.0)
     parser.add_argument("--window-stop", type=float, default=1.25)
@@ -376,6 +386,32 @@ def parse_args() -> argparse.Namespace:
         help="Skip z-scoring after temporal preprocessing.",
     )
     parser.set_defaults(preproc_zscore=True)
+    parser.add_argument(
+        "--category-embedding-backend",
+        type=str,
+        default="english1000",
+        choices=["english1000", "english1000+word2vec", "llm"],
+        help="Embedding backend for category featurization (default: english1000).",
+    )
+    parser.add_argument(
+        "--lm-embedding-path",
+        type=Path,
+        default=None,
+        help="Path to token→embedding file for the LLM backend (.npz/.npy/.json).",
+    )
+    parser.add_argument(
+        "--lm-lowercase-tokens",
+        dest="lm_lowercase_tokens",
+        action="store_true",
+        help="Lowercase tokens before lookup for the LLM backend (default).",
+    )
+    parser.add_argument(
+        "--no-lm-lowercase-tokens",
+        dest="lm_lowercase_tokens",
+        action="store_false",
+        help="Preserve token casing for the LLM backend.",
+    )
+    parser.set_defaults(lm_lowercase_tokens=True)
     return parser.parse_args()
 
 
@@ -408,20 +444,20 @@ def build_configs(
         windows = np.round(np.arange(start, stop + 1e-9, step), 6)
     configs: List[Dict[str, Any]] = []
 
-    configs.append(
-        {
-            "name": "none_0p00",
-            "smoothing_seconds": 0.0,
-            "method": "moving_average",
-            "gaussian_sigma_seconds": None,
-            "pad_mode": "edge",
-            "seconds_bin_width": seconds_bin_width,
-            "temporal_weighting": temporal_weighting,
-        }
-    )
-
     for seconds in windows:
+        # Allow explicit 0.0 to request the baseline; otherwise skip.
         if math.isclose(seconds, 0.0):
+            configs.append(
+                {
+                    "name": "none_0p00",
+                    "smoothing_seconds": 0.0,
+                    "method": "moving_average",
+                    "gaussian_sigma_seconds": None,
+                    "pad_mode": "edge",
+                    "seconds_bin_width": seconds_bin_width,
+                    "temporal_weighting": temporal_weighting,
+                }
+            )
             continue
         tag = f"{seconds:.2f}".replace(".", "p")
         for method in methods:
@@ -526,7 +562,7 @@ def ensure_concat_manifest(
             story_name = row.story
             print(f" - Generating categories for {subject}/{story_name}")
             try:
-                generate_category_time_series(
+                generate_category_time_series_day19(
                     subject,
                     story_name,
                     cfg_base=cfg_base,
@@ -595,6 +631,7 @@ def main() -> None:
 
     subject = args.subject.strip()
     story = args.story.strip()
+    bold_run = args.bold_run.strip() if args.bold_run else None
     target_col = args.target.strip()
     target_safe = sanitize_name(target_col)
 
@@ -609,6 +646,20 @@ def main() -> None:
     n_parcels = int(cfg.get("n_parcels", 400))
     seconds_bin_width_default = float(categories_cfg.get("seconds_bin_width", 0.05))
     temporal_weighting_default = str(categories_cfg.get("temporal_weighting", "proportional")).lower()
+    category_backend = str(args.category_embedding_backend or "english1000").lower().strip()
+    use_llm_backend = category_backend == "llm"
+    if use_llm_backend and args.lm_embedding_path is None:
+        raise ValueError("LLM backend selected but --lm-embedding-path was not provided.")
+    lm_embedding_path = args.lm_embedding_path
+    if lm_embedding_path and not lm_embedding_path.is_absolute():
+        lm_embedding_path = (project_root / lm_embedding_path).resolve()
+    embedding_backend_obj = None
+    if use_llm_backend:
+        embedding_backend_obj = get_embedding_backend(
+            "llm",
+            lm_embedding_path=lm_embedding_path,
+            lm_lowercase_tokens=bool(args.lm_lowercase_tokens),
+        )
 
     tau_grid = args.tau_grid if args.tau_grid else cfg.get("tau_grid") or [1, 2]
     if isinstance(tau_grid, (int, float)):
@@ -629,6 +680,10 @@ def main() -> None:
     seconds_bin_width_concat: Optional[float] = None
     concat_segment_bounds: Optional[List[Tuple[int, int]]] = None
     story_concat_label = args.concat_story_label.strip() if args.concat_story_label else "all_stories"
+    if use_concat and bold_run:
+        raise ValueError("--bold-run is only supported without --use-concat; concatenated inputs ignore individual runs.")
+    if use_concat and use_llm_backend:
+        raise ValueError("LLM embedding backend is not supported with --use-concat; run per-story generation instead.")
     if use_concat:
         concat_features_root_arg = args.concat_features_root
         if concat_features_root_arg is None:
@@ -697,22 +752,25 @@ def main() -> None:
         base_segment_bounds = concat_segment_bounds or [(0, len(concat_category_df))]
     else:
         base_roi_matrix = np.asarray(
-            roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg),
+            roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg, run=bold_run),
             dtype=float,
         )
         base_segment_bounds = [(0, base_roi_matrix.shape[0])]
 
     story_label_for_outputs = story_concat_label if use_concat else story
+    if bold_run and not use_concat:
+        story_label_for_outputs = f"{story_label_for_outputs}_{bold_run}"
     if requested_figs_base is not None:
         figs_base = ensure_dir(requested_figs_base)
     else:
         figs_root = Path(paths_cfg.get("figs", project_root / "figs"))
         figs_base = ensure_dir(figs_root / subject / story_label_for_outputs / "day26_smoothing_cli" / target_safe)
 
+    run_suffix = f" ({bold_run})" if bold_run else ""
     configs = build_configs(
         args.window_start, args.window_stop, args.window_step, args.methods, seconds_bin_width_default, temporal_weighting_default, args.windows
     )
-    print(f"Configured {len(configs)} smoothing settings for {subject}/{story}.")
+    print(f"Configured {len(configs)} smoothing settings for {subject}/{story}{run_suffix}.")
 
     if args.dry_run:
         for cfg_item in configs:
@@ -752,10 +810,17 @@ def main() -> None:
             if target_col not in category_cols:
                 raise RuntimeError(f"Target column {target_col} not present in concatenated data.")
             if smoothing_seconds > 0:
+                causal_smoothing = True
                 kernel = build_smoothing_kernel(
-                    seconds_bin_width_concat or seconds_bin_width, smoothing_seconds, method=smoothing_method, gaussian_sigma_seconds=gaussian_sigma
+                    seconds_bin_width_concat or seconds_bin_width,
+                    smoothing_seconds,
+                    method=smoothing_method,
+                    gaussian_sigma_seconds=gaussian_sigma,
+                    causal=causal_smoothing,
                 )
-                smoothed_vals = apply_smoothing_kernel(category_df[category_cols].to_numpy(dtype=float), kernel, pad_mode=pad_mode)
+                smoothed_vals = apply_smoothing_kernel(
+                    category_df[category_cols].to_numpy(dtype=float), kernel, pad_mode=pad_mode, causal=causal_smoothing
+                )
                 category_df.loc[:, category_cols] = smoothed_vals
             cat_vals = category_df[category_cols].to_numpy(dtype=float)
             cat_vals = fill_segmentwise_nans(cat_vals, segment_bounds)
@@ -766,28 +831,51 @@ def main() -> None:
             local_paths = dict(paths_cfg)
             local_paths["cache"] = str(cache_root)
         else:
-            story_for_run = story
+            story_for_run = story_label_for_outputs
             cluster_csv_use = cluster_csv_path if not cluster_csv_path or Path(cluster_csv_path).exists() else ""
             if cluster_csv_path and not cluster_csv_use:
                 warnings.warn(f"Cluster CSV missing at {cluster_csv_path}; proceeding without clusters.")
-            result = generate_category_time_series(
-                subject,
-                story,
-                cfg_base=cfg,
-                categories_cfg_base=categories_cfg,
-                cluster_csv_path=cluster_csv_use,
-                temporal_weighting=temporal_weighting,
-                prototype_weight_power=prototype_power,
-                smoothing_seconds=smoothing_seconds,
-                smoothing_method=smoothing_method,
-                gaussian_sigma_seconds=gaussian_sigma,
-                smoothing_pad=pad_mode,
-                seconds_bin_width=seconds_bin_width,
-                features_root=config_features_root,
-                paths=paths_cfg,
-                TR=TR,
-                save_outputs=False,
-            )
+            if use_llm_backend:
+                if embedding_backend_obj is None:
+                    raise RuntimeError("LLM embedding backend was not initialized.")
+                result = generate_category_time_series_llm(
+                    subject,
+                    story,
+                    cfg_base=cfg,
+                    categories_cfg_base=categories_cfg,
+                    cluster_csv_path=cluster_csv_use,
+                    temporal_weighting=temporal_weighting,
+                    prototype_weight_power=prototype_power,
+                    smoothing_seconds=smoothing_seconds,
+                    smoothing_method=smoothing_method,
+                    gaussian_sigma_seconds=gaussian_sigma,
+                    smoothing_pad=pad_mode,
+                    seconds_bin_width=seconds_bin_width,
+                    features_root=config_features_root,
+                    paths=paths_cfg,
+                    TR=TR,
+                    embedding_backend=embedding_backend_obj,
+                    save_outputs=False,
+                )
+            else:
+                result = generate_category_time_series_day19(
+                    subject,
+                    story,
+                    cfg_base=cfg,
+                    categories_cfg_base=categories_cfg,
+                    cluster_csv_path=cluster_csv_use,
+                    temporal_weighting=temporal_weighting,
+                    prototype_weight_power=prototype_power,
+                    smoothing_seconds=smoothing_seconds,
+                    smoothing_method=smoothing_method,
+                    gaussian_sigma_seconds=gaussian_sigma,
+                    smoothing_pad=pad_mode,
+                    seconds_bin_width=seconds_bin_width,
+                    features_root=config_features_root,
+                    paths=paths_cfg,
+                    TR=TR,
+                    save_outputs=False,
+                )
             category_df = result["category_df_selected"]
             category_cols = result["category_columns"]
             if not category_cols:
@@ -1027,7 +1115,21 @@ def main() -> None:
             refresh_combined_overlay(figs_base.parent, safe_name, subject, story_for_run)
 
     results_df = pd.DataFrame(results)
-    results_df = results_df.sort_values(by=["method", "smoothing_seconds"]).reset_index(drop=True)
+    # Merge with any existing summary so per-window runs accumulate.
+    summary_path = figs_base / "day26_mde_smoothing_summary.csv"
+    if summary_path.exists():
+        try:
+            prev_df = pd.read_csv(summary_path)
+            results_df = pd.concat([prev_df, results_df], ignore_index=True)
+        except Exception:
+            pass
+    if not results_df.empty:
+        dedup_cols = ["config", "story", "safe_name", "method", "smoothing_seconds"]
+        existing_cols = [c for c in dedup_cols if c in results_df.columns]
+        results_df = results_df.drop_duplicates(subset=existing_cols, keep="last")
+        results_df = results_df.sort_values(by=["method", "smoothing_seconds", "story", "safe_name"]).reset_index(
+            drop=True
+        )
     summary_path = figs_base / "day26_mde_smoothing_summary.csv"
     results_df.to_csv(summary_path, index=False)
     print(f"Summary saved to {summary_path}")

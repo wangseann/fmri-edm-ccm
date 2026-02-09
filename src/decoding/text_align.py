@@ -149,6 +149,30 @@ def load_transcript_words(paths: dict, sub: str, story: str) -> List[WordEvent]:
     )
 
 
+def build_ngram_contexts(word_events: Sequence[WordEvent], ngram: int, use: str) -> Tuple[List[float], List[str]]:
+    """Construct rolling n-gram contexts anchored on each token (previous-only)."""
+    if ngram < 1:
+        raise ValueError("ngram must be >= 1")
+    use_mode = (use or "previous").lower()
+    if use_mode != "previous":
+        raise ValueError(f"Unsupported ngram context mode: {use}")
+    if not word_events:
+        return [], []
+    times: List[float] = []
+    contexts: List[str] = []
+    window: List[str] = []
+    for word, onset, offset in word_events:
+        token = str(word).strip()
+        if not token:
+            continue
+        window.append(token)
+        times.append(float(onset))
+        start_idx = max(0, len(window) - ngram)
+        # Use preceding-only context (previous ngram words), excluding the current token beyond window length.
+        contexts.append(" ".join(window[start_idx:-1]))
+    return times, contexts
+
+
 def make_tr_windows(
     n_tr: int,
     tr_s: float,

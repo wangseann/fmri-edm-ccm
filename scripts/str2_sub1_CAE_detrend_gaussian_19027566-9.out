@@ -1,0 +1,3 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS01 --story avatar --target cat_professional --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_new_day26_eval_cli_90_detrend_gaussianCAE/avatar/cat_professional_ --figs-base figs_new/UTS01/avatar/day26_smoothing_cli_MDE90step_detrend_gaussian_CAE/cat_professional_ --use-cae --methods gaussian --windows 30.0 --max-predictors 90 --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+slurmstepd-deigo011932: error: *** JOB 19027576 ON deigo011932 CANCELLED AT 2025-12-02T15:42:56 ***

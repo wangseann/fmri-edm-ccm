@@ -5,6 +5,7 @@ set -euo pipefail
 CONFIG=${CONFIG:-configs/demo.yaml}
 SUBJECT=${SUBJECT:-UTS01}
 STORY=${STORY:-wheretheressmoke}
+BOLD_RUN=${BOLD_RUN:-5}
 TARGET=${TARGET:-cat_abstract}
 WINDOW_START=${WINDOW_START:-0.0}
 WINDOW_STOP=${WINDOW_STOP:-1.25}
@@ -42,6 +43,10 @@ CMD=("python" "${SCRIPT_DIR}/day26_smoothing_mde.py"
     --ccm-samples "${CCM_SAMPLES}"
     --features-eval-base "${FEATURES_EVAL_BASE}"
 )
+
+if [[ -n "${BOLD_RUN}" ]]; then
+    CMD+=(--bold-run "${BOLD_RUN}")
+fi
 
 if [[ -n "${FIGS_BASE}" ]]; then
     CMD+=(--figs-base "${FIGS_BASE}")

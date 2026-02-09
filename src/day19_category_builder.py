@@ -381,21 +381,37 @@ def score_time_series(
 
 
 def build_smoothing_kernel(
-    seconds_bin_width: float, smoothing_seconds: float, *, method: str = "moving_average", gaussian_sigma_seconds: Optional[float] = None
+    seconds_bin_width: float,
+    smoothing_seconds: float,
+    *,
+    method: str = "moving_average",
+    gaussian_sigma_seconds: Optional[float] = None,
+    causal: bool = True,
 ) -> np.ndarray:
+    """
+    Build a smoothing kernel.
+    causal=True -> one-sided (past + current) kernel for leakage-free forecasting/EDM.
+    causal=False -> original symmetric kernel (uses past and future), for ablations/debugging.
+    """
     if smoothing_seconds <= 0:
         return np.array([1.0], dtype=float)
     method = str(method or "moving_average").lower()
     if method == "moving_average":
         window_samples = max(1, int(round(smoothing_seconds / seconds_bin_width)))
-        if window_samples % 2 == 0:
-            window_samples += 1
-        kernel = np.ones(window_samples, dtype=float)
+        if causal:
+            kernel = np.ones(window_samples, dtype=float)
+        else:
+            if window_samples % 2 == 0:
+                window_samples += 1
+            kernel = np.ones(window_samples, dtype=float)
     elif method == "gaussian":
         sigma_seconds = float(gaussian_sigma_seconds) if gaussian_sigma_seconds not in (None, "") else max(smoothing_seconds / 2.0, seconds_bin_width)
         sigma_samples = max(sigma_seconds / seconds_bin_width, 1e-6)
         half_width = max(1, int(round(3.0 * sigma_samples)))
-        grid = np.arange(-half_width, half_width + 1, dtype=float)
+        if causal:
+            grid = np.arange(0, half_width + 1, dtype=float)
+        else:
+            grid = np.arange(-half_width, half_width + 1, dtype=float)
         kernel = np.exp(-0.5 * (grid / sigma_samples) ** 2)
     else:
         raise ValueError(f"Unknown smoothing method: {method}")
@@ -405,23 +421,64 @@ def build_smoothing_kernel(
     return kernel / kernel_sum
 
 
-def apply_smoothing_kernel(values: np.ndarray, kernel: np.ndarray, *, pad_mode: str = "edge", eps: float = 1e-8) -> np.ndarray:
+def apply_smoothing_kernel(
+    values: np.ndarray,
+    kernel: np.ndarray,
+    *,
+    pad_mode: str = "edge",
+    eps: float = 1e-8,
+    causal: bool = True,
+) -> np.ndarray:
+    """
+    Apply smoothing to a 2D array.
+    causal=True -> one-sided, pads only on the left; each output depends only on past/current samples.
+    causal=False -> original symmetric, centered smoothing (uses past and future), kept for ablations.
+    """
     if values.size == 0 or kernel.size <= 1:
         return values.copy()
     pad_mode = pad_mode if pad_mode in {"edge", "reflect"} else "edge"
-    half = kernel.size // 2
-    padded = np.pad(values, ((half, half), (0, 0)), mode=pad_mode)
-    mask = np.isfinite(padded).astype(float)
-    filled = np.where(mask, padded, 0.0)
-    smoothed = np.empty((values.shape[0], values.shape[1]), dtype=float)
-    for col in range(values.shape[1]):
-        numerator = np.convolve(filled[:, col], kernel, mode="valid")
-        denominator = np.convolve(mask[:, col], kernel, mode="valid")
-        with np.errstate(divide="ignore", invalid="ignore"):
-            smoothed_col = numerator / np.maximum(denominator, eps)
-        smoothed_col[denominator < eps] = np.nan
-        smoothed[:, col] = smoothed_col
-    return smoothed
+    if causal:
+        k = kernel.size
+        left_pad = k - 1
+        padded = np.pad(values, ((left_pad, 0), (0, 0)), mode=pad_mode)
+        mask = np.isfinite(padded).astype(float)
+        filled = np.where(mask, padded, 0.0)
+        smoothed = np.empty_like(values, dtype=float)
+        for col in range(values.shape[1]):
+            numerator = np.convolve(filled[:, col], kernel, mode="valid")
+            denominator = np.convolve(mask[:, col], kernel, mode="valid")
+            with np.errstate(divide="ignore", invalid="ignore"):
+                smoothed_col = numerator / np.maximum(denominator, eps)
+            smoothed_col[denominator < eps] = np.nan
+            smoothed[:, col] = smoothed_col
+        assert smoothed.shape == values.shape
+        return smoothed
+    else:
+        half = kernel.size // 2
+        padded = np.pad(values, ((half, half), (0, 0)), mode=pad_mode)
+        mask = np.isfinite(padded).astype(float)
+        filled = np.where(mask, padded, 0.0)
+        smoothed = np.empty((values.shape[0], values.shape[1]), dtype=float)
+        for col in range(values.shape[1]):
+            numerator = np.convolve(filled[:, col], kernel, mode="valid")
+            denominator = np.convolve(mask[:, col], kernel, mode="valid")
+            with np.errstate(divide="ignore", invalid="ignore"):
+                smoothed_col = numerator / np.maximum(denominator, eps)
+            smoothed_col[denominator < eps] = np.nan
+            smoothed[:, col] = smoothed_col
+        return smoothed
+
+
+def _causal_prefix_invariance_check() -> bool:
+    """Lightweight internal sanity check: causal output before a perturbation index should ignore future changes."""
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((50, 1))
+    kernel = build_smoothing_kernel(1.0, 5.0, method="moving_average", causal=True)
+    y = apply_smoothing_kernel(x, kernel, causal=True)
+    x2 = x.copy()
+    x2[30:] += 100.0
+    y2 = apply_smoothing_kernel(x2, kernel, causal=True)
+    return np.allclose(y[:20], y2[:20], equal_nan=True)
 
 
 def aggregate_seconds_to_edges(canonical_edges: np.ndarray, canonical_values: np.ndarray, target_edges: np.ndarray) -> np.ndarray:
@@ -739,10 +796,13 @@ def generate_category_time_series(
         smoothing_seconds,
         method=smoothing_method,
         gaussian_sigma_seconds=gaussian_sigma_seconds,
+        causal=True,
     )
     smoothing_applied = smoothing_kernel.size > 1
     if canonical_values_raw.size and smoothing_applied:
-        canonical_values_smoothed = apply_smoothing_kernel(canonical_values_raw, smoothing_kernel, pad_mode=smoothing_pad)
+        canonical_values_smoothed = apply_smoothing_kernel(
+            canonical_values_raw, smoothing_kernel, pad_mode=smoothing_pad, causal=True
+        )
     else:
         canonical_values_smoothed = canonical_values_raw.copy()
 

@@ -1,0 +1,11 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS07 --story wheretheressmoke --target cat_mental --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_new_day26_eval_cli_90_detrend_gaussianCAE/wheretheressmoke/cat_mental_ --bold-run 5 --figs-base figs_new/UTS07/wheretheressmoke/day26_smoothing_cli_MDE90step_detrend_gaussian_CAE/cat_mental_ --use-cae --methods gaussian --windows 25.0 --max-predictors 90 --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+Traceback (most recent call last):
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 1179, in <module>
+    main()
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 755, in main
+    roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg, run=bold_run),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/src/roi.py", line 57, in load_schaefer_timeseries_TR
+    raise FileNotFoundError(f"Missing Schaefer timeseries cache: {path}")
+FileNotFoundError: Missing Schaefer timeseries cache: /flash/PaoU/seann/fmri-edm-ccm/data_cache/UTS07/wheretheressmoke/5/schaefer_400.npy

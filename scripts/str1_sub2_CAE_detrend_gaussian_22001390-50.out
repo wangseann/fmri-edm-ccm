@@ -1,0 +1,32 @@
+Running Day26 smoothing sweep with command:
+  python /flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py --config configs/demo.yaml --subject UTS03 --story wheretheressmoke --target cat_social --window-start 0.0 --window-stop 1.25 --window-step 0.25 --ccm-samples 10 --features-eval-base features_new_day26_eval_cli_90_detrend_gaussianCAE/wheretheressmoke/run-2/cat_social_ --bold-run run-2 --figs-base figs_new/UTS03/wheretheressmoke/run-2/day26_smoothing_cli_MDE90step_detrend_gaussian_CAE/cat_social_ --use-cae --methods gaussian --windows 0.0 --max-predictors 90 --huth-preproc --preproc-window 120.0 --preproc-trim 10.0 --preproc-polyorder 2 --preproc-zscore
+/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Configured 1 smoothing settings for UTS03/wheretheressmoke (run-2).
+
+=== none_0p00: method=moving_average window=0.00s ===
+=== Day19 category build for UTS03 / wheretheressmoke ===
+Loaded 2308 transcript events.
+TR edges: 302 (n_tr=301) spanning 602.00 seconds.
+Traceback (most recent call last):
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 1179, in <module>
+    main()
+  File "/flash/PaoU/seann/fmri-edm-ccm/scripts/day26_smoothing_mde.py", line 861, in main
+    result = generate_category_time_series_day19(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/src/day19_category_builder.py", line 590, in generate_category_time_series
+    english_loader = English1000Loader(english1000_path)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/src/edm_ccm.py", line 46, in __init__
+    with h5py.File(h5_path, "r") as hf:  # type: ignore[call-arg]
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/h5py/_hl/files.py", line 566, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, fcpl, swmr=swmr)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/flash/PaoU/seann/fmri-edm-ccm/.venv/lib/python3.11/site-packages/h5py/_hl/files.py", line 241, in make_fid
+    fid = h5f.open(name, flags, fapl=fapl)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 104, in h5py.h5f.open
+OSError: [Errno 37] Unable to synchronously open file (unable to lock file, errno = 37, error message = 'No locks available')
