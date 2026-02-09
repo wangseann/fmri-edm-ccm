@@ -258,7 +258,16 @@ def launch_alignment_explorer(
             colors = np.where(plot_highlight["score"] >= 0, "tab:green", "tab:red")
             sizes = 60 + 200 * (plot_highlight["abs_score"] / scale)
             ax.scatter(plot_highlight["midpoint"], plot_highlight["canonical_value"], s=sizes, c=colors, alpha=0.9, edgecolor="white", linewidth=0.4)
-            token_handle = mlines.Line2D([], [], marker="o", linestyle="None", color="tab:green", markerfacecolor="tab:green", markeredgecolor="white", label="Transcript tokens")
+            token_handle = mlines.Line2D(
+                [],
+                [],
+                marker="o",
+                linestyle="None",
+                color="tab:green",
+                markerfacecolor="tab:green",
+                markeredgecolor="white",
+                label="Transcript tokens",
+            )
 
             ax_tokens.axhline(0.0, color="0.6", linewidth=1.0)
             ax_tokens.vlines(plot_highlight["midpoint"], 0.0, plot_highlight["score"], colors=colors, linewidth=2.0, alpha=0.8)
@@ -271,7 +280,9 @@ def launch_alignment_explorer(
             ax_tokens.set_ylim(-max_abs * 1.3, max_abs * 1.3)
         else:
             ax_tokens.axhline(0.0, color="0.6", linewidth=1.0)
-            ax_tokens.text(0.5, 0.5, "No tokens matched the current filters", transform=ax_tokens.transAxes, ha="center", va="center", fontsize=10, color="0.4")
+            ax_tokens.text(
+                0.5, 0.5, "No tokens matched the current filters", transform=ax_tokens.transAxes, ha="center", va="center", fontsize=10, color="0.4"
+            )
             ax_tokens.set_ylim(-1.0, 1.0)
 
         ax.set_xlim(t0, t1)
@@ -316,7 +327,7 @@ def launch_alignment_explorer(
         max=float(canonical_time[-1]) if canonical_time.size else 0.0,
         step=1.0,
         description="Window (s):",
-        layout=widgets.Layout(width="70%")
+        layout=widgets.Layout(width="70%"),
     )
     threshold_slider = widgets.FloatSlider(
         value=min(0.05, QA_SCORE_ABS_MAX),
@@ -325,26 +336,22 @@ def launch_alignment_explorer(
         step=0.01,
         readout_format=".2f",
         description="|score| ≥",
-        layout=widgets.Layout(width="50%")
+        layout=widgets.Layout(width="50%"),
     )
     score_slider = widgets.FloatSlider(
-        value=0.0,
-        min=-1.0,
-        max=1.0,
-        step=0.01,
-        readout_format=".2f",
-        description="score ≥",
-        layout=widgets.Layout(width="50%")
+        value=0.0, min=-1.0, max=1.0, step=0.01, readout_format=".2f", description="score ≥", layout=widgets.Layout(width="50%")
     )
     focus_peak_btn = widgets.Button(description="Focus on peak", icon="arrow-up")
     focus_trough_btn = widgets.Button(description="Focus on trough", icon="arrow-down")
 
-    controls = widgets.VBox([
-        qa_dropdown,
-        window_slider,
-        widgets.HBox([threshold_slider, score_slider]),
-        widgets.HBox([focus_peak_btn, focus_trough_btn]),
-    ])
+    controls = widgets.VBox(
+        [
+            qa_dropdown,
+            window_slider,
+            widgets.HBox([threshold_slider, score_slider]),
+            widgets.HBox([focus_peak_btn, focus_trough_btn]),
+        ]
+    )
     out = widgets.Output()
 
     def _update_alignment(*_):

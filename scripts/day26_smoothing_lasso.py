@@ -538,16 +538,7 @@ def run_ridge_no_lag(
     time_axis: np.ndarray,
     train_frac: float,
     val_frac: float,
-) -> Tuple[
-    Dict[str, float],
-    Dict[str, float],
-    Dict[str, float],
-    np.ndarray,
-    Dict[str, Tuple[int, int]],
-    np.ndarray,
-    np.ndarray,
-    float,
-]:
+) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float], np.ndarray, Dict[str, Tuple[int, int]], np.ndarray, np.ndarray, float,]:
     """
     Ridge baseline WITHOUT ROI lags.
     Uses the preprocessed ROI time series directly.
@@ -555,10 +546,7 @@ def run_ridge_no_lag(
 
     N, n_roi = roi_matrix.shape
     if N != target_series.shape[0] or N != time_axis.shape[0]:
-        raise ValueError(
-            f"Length mismatch: target={target_series.shape[0]}, "
-            f"roi={N}, time={time_axis.shape[0]}"
-        )
+        raise ValueError(f"Length mismatch: target={target_series.shape[0]}, " f"roi={N}, time={time_axis.shape[0]}")
 
     X = roi_matrix.astype(float)
     y = target_series.astype(float)
@@ -771,9 +759,7 @@ def refresh_ridge_overlay(
             continue
 
         # Prediction CSV
-        prediction_files = list(
-            config_dir.glob(f"ridge_{mode_tag}_*_prediction.csv")
-        )
+        prediction_files = list(config_dir.glob(f"ridge_{mode_tag}_*_prediction.csv"))
         if not prediction_files:
             continue
 
@@ -783,9 +769,7 @@ def refresh_ridge_overlay(
             continue
 
         # Optional summary JSON with splits
-        summary_files = list(
-            config_dir.glob(f"ridge_{mode_tag}_*_summary.json")
-        )
+        summary_files = list(config_dir.glob(f"ridge_{mode_tag}_*_summary.json"))
         summary_data: Dict[str, Any] = {}
         if summary_files:
             try:
@@ -804,7 +788,7 @@ def refresh_ridge_overlay(
     axes = np.atleast_1d(axes).flatten()
 
     # Turn off unused axes
-    for ax in axes[len(records):]:
+    for ax in axes[len(records) :]:
         ax.axis("off")
 
     global_shown: set[str] = set()
@@ -831,12 +815,10 @@ def refresh_ridge_overlay(
         splits = summary_data.get("splits") if summary_data else None
         if isinstance(splits, dict):
             # convert back to tuple index spans
-            span_dict = {
-                k: (int(v[0]), int(v[1])) for k, v in splits.items()
-            }
+            span_dict = {k: (int(v[0]), int(v[1])) for k, v in splits.items()}
             global_shown = add_split_background(
                 ax,
-                x_vals,         # time axis
+                x_vals,  # time axis
                 span_dict,
                 shown=global_shown,
             )
@@ -1337,8 +1319,8 @@ def main() -> None:
                 )
             # Update the combined overlay for this config + mode across categories
             refresh_ridge_overlay(
-                figs_base.parent,   # .../day26_ridge_cli
-                safe_name,          # config directory name
+                figs_base.parent,  # .../day26_ridge_cli
+                safe_name,  # config directory name
                 subject,
                 story_label_for_outputs,
                 mode_tag,
@@ -1365,9 +1347,7 @@ def main() -> None:
             dedup_cols = ["config", "story", "safe_name", "method", "smoothing_seconds"]
             existing_cols = [c for c in dedup_cols if c in results_df.columns]
             results_df = results_df.drop_duplicates(subset=existing_cols, keep="last")
-            results_df = results_df.sort_values(
-                by=["method", "smoothing_seconds", "story", "safe_name"]
-            ).reset_index(drop=True)
+            results_df = results_df.sort_values(by=["method", "smoothing_seconds", "story", "safe_name"]).reset_index(drop=True)
         results_df.to_csv(summary_path, index=False)
         print(f"Ridge summary ({mode_tag}) saved to {summary_path}")
 

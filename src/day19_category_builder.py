@@ -800,9 +800,7 @@ def generate_category_time_series(
     )
     smoothing_applied = smoothing_kernel.size > 1
     if canonical_values_raw.size and smoothing_applied:
-        canonical_values_smoothed = apply_smoothing_kernel(
-            canonical_values_raw, smoothing_kernel, pad_mode=smoothing_pad, causal=True
-        )
+        canonical_values_smoothed = apply_smoothing_kernel(canonical_values_raw, smoothing_kernel, pad_mode=smoothing_pad, causal=True)
     else:
         canonical_values_smoothed = canonical_values_raw.copy()
 

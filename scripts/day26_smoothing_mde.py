@@ -943,11 +943,7 @@ def main() -> None:
         rows_trimmed = max(0, raw_length - clean_length)
         preproc_trim_tr = int(cat_preproc.trim_tr) if cat_preproc else 0
         preproc_win_tr = int(cat_preproc.win_len_tr) if cat_preproc else 0
-        preproc_kept_ranges = (
-            [[int(s), int(e)] for s, e in cat_preproc.kept_ranges]
-            if cat_preproc
-            else [[int(s), int(e)] for s, e in segment_bounds]
-        )
+        preproc_kept_ranges = [[int(s), int(e)] for s, e in cat_preproc.kept_ranges] if cat_preproc else [[int(s), int(e)] for s, e in segment_bounds]
         preproc_kept_ranges_json = json.dumps(preproc_kept_ranges)
 
         np.save(roi_output_path, roi_matrix_clean)
@@ -1078,12 +1074,12 @@ def main() -> None:
                 "rmse_train": rmse_info.get("train", np.nan),
                 "rmse_validation": rmse_info.get("validation", np.nan),
                 "rmse_test": rmse_info.get("test", np.nan),
-                 "rho_train": rho_span.get("train", np.nan),
-                 "rho_validation": rho_span.get("validation", np.nan),
-                 "rho_test": rho_span.get("test", np.nan),
-                 "cae_train": cae_span.get("train", np.nan),
-                 "cae_validation": cae_span.get("validation", np.nan),
-                 "cae_test": cae_span.get("test", np.nan),
+                "rho_train": rho_span.get("train", np.nan),
+                "rho_validation": rho_span.get("validation", np.nan),
+                "rho_test": rho_span.get("test", np.nan),
+                "cae_train": cae_span.get("train", np.nan),
+                "cae_validation": cae_span.get("validation", np.nan),
+                "cae_test": cae_span.get("test", np.nan),
                 "prediction_csv": prediction_csv,
                 "selection_metric": summary.get("selection_metric", "rho"),
             }
@@ -1127,9 +1123,7 @@ def main() -> None:
         dedup_cols = ["config", "story", "safe_name", "method", "smoothing_seconds"]
         existing_cols = [c for c in dedup_cols if c in results_df.columns]
         results_df = results_df.drop_duplicates(subset=existing_cols, keep="last")
-        results_df = results_df.sort_values(by=["method", "smoothing_seconds", "story", "safe_name"]).reset_index(
-            drop=True
-        )
+        results_df = results_df.sort_values(by=["method", "smoothing_seconds", "story", "safe_name"]).reset_index(drop=True)
     summary_path = figs_base / "day26_mde_smoothing_summary.csv"
     results_df.to_csv(summary_path, index=False)
     print(f"Summary saved to {summary_path}")

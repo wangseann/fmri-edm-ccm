@@ -1088,19 +1088,11 @@ def run_mde_for_pair(
 
     # Prefer the span-specific linear diagnostics for reporting; fall back to the
     # overall best metric if the split metrics are missing/invalid.
-    selection_rho_by_span = {
-        key: val
-        for key, val in (rho_split_linear or {}).items()
-        if val is not None and np.isfinite(val)
-    }
+    selection_rho_by_span = {key: val for key, val in (rho_split_linear or {}).items() if val is not None and np.isfinite(val)}
     if not selection_rho_by_span and np.isfinite(best_rho):
         selection_rho_by_span = {key: best_rho for key in ("train", "validation", "test")}
 
-    selection_cae_by_span = {
-        key: val
-        for key, val in (cae_split_linear or {}).items()
-        if val is not None and np.isfinite(val)
-    }
+    selection_cae_by_span = {key: val for key, val in (cae_split_linear or {}).items() if val is not None and np.isfinite(val)}
     if not selection_cae_by_span and np.isfinite(best_cae):
         selection_cae_by_span = {key: best_cae for key in ("train", "validation", "test")}
 
@@ -1185,10 +1177,7 @@ def run_mde_for_pair(
         "rho_by_span_linear": rho_split_linear,
         "cae_by_span_linear": cae_split_linear,
         "prediction_csv": str(prediction_csv) if prediction_csv else None,
-        "splits": {
-            key: [int(span[0]), int(span[1])] if span is not None else None
-            for key, span in splits.items()
-        },
+        "splits": {key: [int(span[0]), int(span[1])] if span is not None else None for key, span in splits.items()},
     }
     summary_path.write_text(json.dumps(summary, indent=2))
 

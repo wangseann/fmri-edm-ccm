@@ -34,6 +34,7 @@ from src.day19_category_builder import apply_smoothing_kernel, build_smoothing_k
 
 logger = logging.getLogger(__name__)
 
+
 def load_QAEmb_without_imodelsx_init():
     """
     Load imodelsx.qaemb.QAEmb without executing imodelsx/__init__.py.
@@ -77,6 +78,7 @@ def load_QAEmb_without_imodelsx_init():
     qa_spec.loader.exec_module(qa_mod)
 
     return qa_mod.QAEmb
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate QA-Emb time series from transcript tokens.")
@@ -365,9 +367,7 @@ def run_qaemb_timeseries(
             qa_matrix = cached
             logger.info("Loaded cached QA embeddings from %s", qa_file)
         else:
-            warnings.warn(
-                f"Cached QA embeddings had shape {cached.shape}; expected {(len(token_df), len(QA_QUESTIONS))}. Recomputing."
-            )
+            warnings.warn(f"Cached QA embeddings had shape {cached.shape}; expected {(len(token_df), len(QA_QUESTIONS))}. Recomputing.")
 
     if qa_matrix is None:
         try:
@@ -418,9 +418,7 @@ def run_qaemb_timeseries(
             time_anchor,
         )
         if len(examples) != expected_tokens:
-            raise ValueError(
-                f"Context/example count mismatch: got {len(examples)} examples, expected {expected_tokens} tokens."
-            )
+            raise ValueError(f"Context/example count mismatch: got {len(examples)} examples, expected {expected_tokens} tokens.")
 
         qa_rows = []
         for start in range(0, len(examples), batch_size):
@@ -605,9 +603,7 @@ def _validate_outputs(
     if tr_matrix.shape[1] != n_questions:
         raise ValueError(f"Validation failed ({mode}): TR questions {tr_matrix.shape[1]} != {n_questions}")
     if canonical_matrix.shape[0] != len(canonical_buckets):
-        raise ValueError(
-            f"Validation failed ({mode}): canonical bins {canonical_matrix.shape[0]} != bucket count {len(canonical_buckets)}"
-        )
+        raise ValueError(f"Validation failed ({mode}): canonical bins {canonical_matrix.shape[0]} != bucket count {len(canonical_buckets)}")
     if tr_matrix.shape[0] != len(tr_buckets):
         raise ValueError(f"Validation failed ({mode}): TR bins {tr_matrix.shape[0]} != bucket count {len(tr_buckets)}")
     has_nan = np.isnan(canonical_matrix).any() or np.isnan(tr_matrix).any()

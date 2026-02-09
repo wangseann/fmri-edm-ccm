@@ -203,7 +203,9 @@ def _build_category_states(
         found_seeds: List[str] = []
         missing_seeds: List[str] = []
         if seeds:
-            prototype, found_seeds, missing_seeds = make_category_prototype(seeds, token_lookup, None, allow_single=bool(categories_cfg.get("allow_single_seed", False)))
+            prototype, found_seeds, missing_seeds = make_category_prototype(
+                seeds, token_lookup, None, allow_single=bool(categories_cfg.get("allow_single_seed", False))
+            )
             seed_oov_counter[cat_name] = len(missing_seeds)
             if prototype is None and category_score_method == "similarity":
                 warnings.warn(f"Category '{cat_name}' has no usable prototype; TR scores will be NaN.")
@@ -421,9 +423,7 @@ def generate_category_time_series(
     )
     smoothing_applied = smoothing_kernel.size > 1
     if canonical_values_raw.size and smoothing_applied:
-        canonical_values_smoothed = apply_smoothing_kernel(
-            canonical_values_raw, smoothing_kernel, pad_mode=smoothing_pad, causal=True
-        )
+        canonical_values_smoothed = apply_smoothing_kernel(canonical_values_raw, smoothing_kernel, pad_mode=smoothing_pad, causal=True)
     else:
         canonical_values_smoothed = canonical_values_raw.copy()
 
