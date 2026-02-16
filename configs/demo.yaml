@@ -140,7 +140,7 @@ categories:
     transform_path: embeddings/fallback_to_english1000.npz
     label: word2vec
 qa_emb:
-  questions_path: configs/qaemb_questions.json
+  questions_path: configs/qaemb_all_questions.json
   checkpoint: meta-llama/Meta-Llama-3-8B-Instruct
   ngram_size: 10
   use_cache: true
@@ -151,4 +151,4 @@ qa_emb:
   smoothing_pad_mode: reflect
   save_outputs: true
   batch_size: 128
-  hf_token: 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            # optional; else set env var
+

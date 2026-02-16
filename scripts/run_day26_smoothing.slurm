@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --partition=compute
-#SBATCH --time=24:00:00
+#SBATCH --time=96:00:00
 #SBATCH --job-name=str1_sub2_guassian_CAE
-#SBATCH --output=str1_sub2_CAE_detrend_gaussian_%A-%a.out
+#SBATCH --output=/flash/PaoU/seann/fmri-edm-ccm/scripts/str1_sub2_CAE_detrend_gaussian_%A-%a.out
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=16
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=se-wang@oist.jp
-#SBATCH --array=0-60
+#SBATCH --array=0
 # 0-59 corresponds to 12 categories * 5 window sizes (default: includes 0.0 baseline). Adjust if you change lists below.
 set -euo pipefail
 
@@ -16,6 +16,31 @@ PROJECT_ROOT=/flash/PaoU/seann/fmri-edm-ccm
 module purge
 module load python/3.11
 source "$PROJECT_ROOT/.venv/bin/activate"
+
+# Toggle: set to "kedm" or "pyedm"
+export MDE_BACKEND=${MDE_BACKEND:-pyedm}
+
+if [[ "$MDE_BACKEND" == "kedm" ]]; then
+    export PYTHONPATH="/flash/PaoU/seann/MDE-main/src:${PYTHONPATH:-}"
+else
+    # ensure shim is NOT on path
+    export PYTHONPATH=$(python - <<'PY'
+import os
+p=os.environ.get("PYTHONPATH","")
+parts=[x for x in p.split(":") if x and x != "/flash/PaoU/seann/MDE-main/src"]
+print(":".join(parts))
+PY
+)
+fi
+
+python - <<'PY'
+import os
+backend = os.environ.get("MDE_BACKEND", "pyedm").strip().lower()
+if backend == "kedm":
+    print("Using kEDM")
+else:
+    print("Using pyEDM")
+PY
 
 # Per-job temp/cache to avoid cross-run cache races
 export TMPDIR="/scratch/$USER/${SLURM_JOB_ID}"
@@ -26,8 +51,8 @@ mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$MPLCONFIGDIR"
 SUBJECT=UTS03
 STORY=wheretheressmoke #myfirstdaywiththeyankees #life #howtodraw #souls #odetostepfather #legacy #avatar #alternateithicatom
 BOLD_RUN=${BOLD_RUN:-run-3}
-#TARGET_LIST=(cat_abstract cat_temporal cat_professional cat_visual cat_violent cat_tactile cat_communal cat_mental cat_numeric cat_emotional cat_social cat_locational)
-TARGET_LIST=(cat_social cat_emotional)
+TARGET_LIST=(cat_abstract cat_temporal cat_professional cat_visual cat_violent cat_tactile cat_communal cat_mental cat_numeric cat_emotional cat_social cat_locational)
+#TARGET_LIST=(cat_social cat_emotional)
 WINDOW_OPTIONS=(${WINDOW_OPTIONS:-0.0 10.0 20.0 30.0 40.0})
 
 TASK_ID=${SLURM_ARRAY_TASK_ID:-0}
@@ -52,6 +77,8 @@ export WINDOW_STOP=${WINDOW_STOP:-1.25}
 export WINDOW_STEP=${WINDOW_STEP:-0.25}
 export METHODS="${METHODS:-gaussian}" #moving_average gaussian
 export MAX_PREDICTORS=${MAX_PREDICTORS:-90}
+export FMRI_SPACE=${FMRI_SPACE:-voxel}          # roi | voxel
+export NO_LAG_PREDICTORS=${NO_LAG_PREDICTORS:-true}
 export USE_CONCAT=${USE_CONCAT:-false} #true or false
 export CONCAT_MANIFEST=${CONCAT_MANIFEST:-}
 export CONCAT_STORY_LABEL=${CONCAT_STORY_LABEL:-ten_stories}

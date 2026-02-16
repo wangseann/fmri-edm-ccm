@@ -32,7 +32,7 @@ for extra in (pyedm_src, mde_src):
     elif not extra.exists():
         warnings.warn(f"Optional dependency path not found: {extra}")
 
-from src.utils import load_yaml
+from src.utils import load_yaml, zscore_per_column
 from src.day19_category_builder import (
     generate_category_time_series as generate_category_time_series_day19,
     build_smoothing_kernel,
@@ -51,7 +51,7 @@ from src.day24_subject_concat import (
     DEFAULT_OUTPUT_SUBDIR as DAY24_DEFAULT_OUTPUT_SUBDIR,
     _resolve_cache_dir as day24_resolve_cache_dir,
 )
-from src.day22_category_mde import run_mde_for_pair, sanitize_name
+from src.day22_category_mde import build_roi_lag_store, build_roi_lagged_features, run_mde_for_pair, sanitize_name
 from src.preprocessing.huth import preprocess_huth_style
 from src import roi
 
@@ -326,9 +326,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--features-eval-base", type=Path, default=Path("features_day26_eval_cli"))
     parser.add_argument("--figs-base", type=Path, default=None, help="Override output figs root.")
     parser.add_argument("--top-n-plot", type=int, default=6)
+    parser.add_argument(
+        "--skip-extra-plots",
+        action="store_true",
+        help="Skip variable ranking, scatter, lag-heatmap, residuals, and prediction-scatter plots.",
+    )
     parser.add_argument("--lib-sizes", type=int, nargs="*", default=None)
     parser.add_argument("--tau-grid", type=int, nargs="*", default=None)
     parser.add_argument("--max-predictors", type=int, default=None, help="Maximum number of predictors (embedding dimension cap).")
+    parser.add_argument(
+        "--fmri-space",
+        type=str,
+        default="roi",
+        choices=["roi", "voxel"],
+        help="Predictor space for MDE (roi=parcellated Schaefer, voxel=voxelwise).",
+    )
+    parser.add_argument(
+        "--no-lag-predictors",
+        action="store_true",
+        help="Disable temporal lag expansion and use lag-0 predictors only.",
+    )
     parser.add_argument("--use-concat", action="store_true", help="Use Day24 concatenated subject-level series instead of a single story.")
     parser.add_argument("--concat-manifest", type=Path, default=None, help="Path to Day24 manifest JSON for the subject.")
     parser.add_argument("--concat-story-label", type=str, default="all_stories", help="Synthetic story label when using concatenated series.")
@@ -624,6 +641,7 @@ def ensure_concat_manifest(
 
 def main() -> None:
     args = parse_args()
+    skip_extra_plots = bool(args.skip_extra_plots)
 
     config_path = args.config.resolve()
     cfg = load_yaml(config_path)
@@ -634,6 +652,8 @@ def main() -> None:
     bold_run = args.bold_run.strip() if args.bold_run else None
     target_col = args.target.strip()
     target_safe = sanitize_name(target_col)
+    fmri_space = str(args.fmri_space).strip().lower()
+    predictor_prefix = "roi" if fmri_space == "roi" else "voxel"
 
     paths_cfg = resolve_paths(project_root, cfg.get("paths", {}) or {})
 
@@ -684,6 +704,8 @@ def main() -> None:
         raise ValueError("--bold-run is only supported without --use-concat; concatenated inputs ignore individual runs.")
     if use_concat and use_llm_backend:
         raise ValueError("LLM embedding backend is not supported with --use-concat; run per-story generation instead.")
+    if use_concat and fmri_space == "voxel":
+        raise ValueError("--fmri-space voxel is not supported with --use-concat yet.")
     if use_concat:
         concat_features_root_arg = args.concat_features_root
         if concat_features_root_arg is None:
@@ -751,11 +773,39 @@ def main() -> None:
         base_roi_matrix = np.asarray(roi_matrix_concat, dtype=float)
         base_segment_bounds = concat_segment_bounds or [(0, len(concat_category_df))]
     else:
-        base_roi_matrix = np.asarray(
-            roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg, run=bold_run),
-            dtype=float,
-        )
+        if fmri_space == "voxel":
+            base_roi_matrix = np.asarray(
+                roi.load_voxel_timeseries_TR(subject, story, paths_cfg, run=bold_run),
+                dtype=float,
+            )
+        else:
+            base_roi_matrix = np.asarray(
+                roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg, run=bold_run),
+                dtype=float,
+            )
         base_segment_bounds = [(0, base_roi_matrix.shape[0])]
+
+    segment_bounds = [tuple(b) for b in base_segment_bounds]
+    roi_matrix_base = fill_segmentwise_nans(np.asarray(base_roi_matrix, dtype=float), segment_bounds)
+    roi_preproc = None
+    roi_kept_indices: Optional[np.ndarray] = None
+    if args.huth_preproc:
+        roi_preproc = preprocess_huth_style(
+            roi_matrix_base,
+            tr=TR,
+            window_s=args.preproc_window,
+            polyorder=args.preproc_polyorder,
+            trim_s=args.preproc_trim,
+            zscore=args.preproc_zscore,
+            segment_bounds=segment_bounds,
+            return_tr_indices=True,
+        )
+        roi_matrix_clean = roi_preproc.cleaned.astype(np.float32, copy=False)
+        if roi_preproc.kept_indices is not None:
+            roi_kept_indices = np.concatenate(roi_preproc.kept_indices)
+    else:
+        roi_matrix_clean = roi_matrix_base.astype(np.float32, copy=False)
+    roi_matrix_clean = zscore_per_column(roi_matrix_clean).astype(np.float32, copy=False)
 
     story_label_for_outputs = story_concat_label if use_concat else story
     if bold_run and not use_concat:
@@ -777,6 +827,12 @@ def main() -> None:
             print(f" - {cfg_item['name']}: method={cfg_item['method']} window={cfg_item['smoothing_seconds']:.2f}s")
         return
 
+    max_tau = max(tau_grid) if tau_grid else 1
+    max_lag = 0 if args.no_lag_predictors else max_tau * (max_predictors - 1)
+    roi_cols, roi_lag_store = build_roi_lag_store(roi_matrix_clean, max_lag, prefix=predictor_prefix)
+    roi_lagged_features = build_roi_lagged_features(roi_cols, roi_lag_store, max_lag)
+    predictor_cache_filename = "voxels.npy" if fmri_space == "voxel" else f"schaefer_{n_parcels}.npy"
+
     results: List[Dict[str, Any]] = []
 
     for cfg_item in configs:
@@ -793,9 +849,6 @@ def main() -> None:
 
         config_features_root = ensure_dir(features_eval_base / safe_name)
         cache_root = ensure_dir(config_features_root / "cache")
-        segment_bounds = [tuple(b) for b in base_segment_bounds]
-        roi_matrix_base_iter = np.asarray(base_roi_matrix, dtype=float).copy()
-        roi_matrix_base_iter = fill_segmentwise_nans(roi_matrix_base_iter, segment_bounds)
 
         if use_concat:
             story_for_run = story_concat_label
@@ -827,7 +880,7 @@ def main() -> None:
             category_df.loc[:, category_cols] = cat_vals
             category_dir = ensure_dir(config_features_root / "subjects" / subject / story_for_run)
             cache_subject_dir = ensure_dir(cache_root / subject / story_for_run)
-            roi_output_path = cache_subject_dir / f"schaefer_{n_parcels}.npy"
+            roi_output_path = cache_subject_dir / predictor_cache_filename
             local_paths = dict(paths_cfg)
             local_paths["cache"] = str(cache_root)
         else:
@@ -887,7 +940,7 @@ def main() -> None:
             category_df.loc[:, category_cols] = cat_vals
             category_dir = ensure_dir(config_features_root / "subjects" / subject / story_for_run)
             cache_subject_dir = ensure_dir(cache_root / subject / story_for_run)
-            roi_output_path = cache_subject_dir / f"schaefer_{n_parcels}.npy"
+            roi_output_path = cache_subject_dir / predictor_cache_filename
             local_paths = dict(paths_cfg)
             local_paths["cache"] = str(cache_root)
 
@@ -906,31 +959,18 @@ def main() -> None:
                 segment_bounds=segment_bounds,
                 return_tr_indices=True,
             )
-            roi_preproc = preprocess_huth_style(
-                roi_matrix_base_iter,
-                tr=TR,
-                window_s=args.preproc_window,
-                polyorder=args.preproc_polyorder,
-                trim_s=args.preproc_trim,
-                zscore=args.preproc_zscore,
-                segment_bounds=segment_bounds,
-                return_tr_indices=True,
-            )
-            if cat_preproc.cleaned.shape[0] != roi_preproc.cleaned.shape[0]:
+            if cat_preproc.cleaned.shape[0] != roi_matrix_clean.shape[0]:
                 raise RuntimeError(
-                    f"Preprocessed category series ({cat_preproc.cleaned.shape[0]}) and ROI matrix ({roi_preproc.cleaned.shape[0]}) length mismatch."
+                    f"Preprocessed category series ({cat_preproc.cleaned.shape[0]}) and ROI matrix ({roi_matrix_clean.shape[0]}) length mismatch."
                 )
-            if cat_preproc.kept_indices is None or roi_preproc.kept_indices is None:
+            if cat_preproc.kept_indices is None or roi_kept_indices is None:
                 raise RuntimeError("Preprocessing must return kept indices; set return_tr_indices=True.")
             cat_indices = np.concatenate(cat_preproc.kept_indices)
-            roi_indices = np.concatenate(roi_preproc.kept_indices)
-            if not np.array_equal(cat_indices, roi_indices):
+            if not np.array_equal(cat_indices, roi_kept_indices):
                 raise RuntimeError("Category and ROI kept indices differ; segment parameters may be inconsistent.")
             category_df = category_df.iloc[cat_indices].reset_index(drop=True)
             category_df.loc[:, category_cols] = cat_preproc.cleaned
-            roi_matrix_clean = roi_preproc.cleaned.astype(np.float32, copy=False)
         else:
-            roi_matrix_clean = roi_matrix_base_iter.astype(np.float32, copy=False)
             cat_indices = np.arange(len(category_df), dtype=int)
         category_df = category_df.reset_index(drop=True)
         if "trim_index" in category_df.columns:
@@ -946,7 +986,8 @@ def main() -> None:
         preproc_kept_ranges = [[int(s), int(e)] for s, e in cat_preproc.kept_ranges] if cat_preproc else [[int(s), int(e)] for s, e in segment_bounds]
         preproc_kept_ranges_json = json.dumps(preproc_kept_ranges)
 
-        np.save(roi_output_path, roi_matrix_clean)
+        if not roi_output_path.exists():
+            np.save(roi_output_path, roi_matrix_clean)
         meta_path = category_dir / "huth_preproc_meta.json"
         if args.huth_preproc and cat_preproc is not None:
             meta_payload = {
@@ -1008,10 +1049,22 @@ def main() -> None:
             val_frac=0.25,
             top_n_plot=args.top_n_plot,
             save_input_frame=True,
-            save_scatter=True,
+            save_scatter=not skip_extra_plots,
             sample_steps=args.ccm_samples,
             plt_module=plt,
             use_cae=args.use_cae,
+            category_df=category_df,
+            roi_matrix=roi_matrix_clean,
+            roi_prepared=True,
+            roi_cols=roi_cols,
+            roi_lag_store=roi_lag_store,
+            roi_lagged_features=roi_lagged_features,
+            max_lag_override=max_lag,
+            plot_ranking=not skip_extra_plots,
+            plot_scatter=not skip_extra_plots,
+            do_lag_heatmap=not skip_extra_plots,
+            do_residuals_plot=not skip_extra_plots,
+            do_prediction_scatter=not skip_extra_plots,
         )
 
         selection_path = Path(summary["selection_csv"])

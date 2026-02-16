@@ -28,6 +28,8 @@ PREPROC_WINDOW=${PREPROC_WINDOW:-120.0}
 PREPROC_TRIM=${PREPROC_TRIM:-20.0}
 PREPROC_POLYORDER=${PREPROC_POLYORDER:-2}
 PREPROC_ZSCORE=${PREPROC_ZSCORE:-true}
+FMRI_SPACE=${FMRI_SPACE:-roi}
+NO_LAG_PREDICTORS=${NO_LAG_PREDICTORS:-false}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -76,6 +78,15 @@ MAX_PREDICTORS=${MAX_PREDICTORS:-${E_CAP:-}}
 
 if [[ -n "${MAX_PREDICTORS}" ]]; then
     CMD+=(--max-predictors "${MAX_PREDICTORS}")
+fi
+
+CMD+=(--fmri-space "${FMRI_SPACE}")
+if [[ "${NO_LAG_PREDICTORS}" == "true" ]]; then
+    CMD+=(--no-lag-predictors)
+fi
+
+if [[ "${SKIP_EXTRA_PLOTS:-true}" == "true" ]]; then
+    CMD+=(--skip-extra-plots)
 fi
 
 if [[ "${USE_CONCAT}" == "true" ]]; then

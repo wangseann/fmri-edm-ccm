@@ -7,6 +7,7 @@ Python entrypoint that runs end-to-end without any interactive widgets.
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import os
@@ -30,7 +31,7 @@ if str(DEFAULT_PROJECT_ROOT) not in sys.path:
 
 from src.utils import load_yaml  # noqa: E402
 from src.decoding import build_ngram_contexts, load_transcript_words  # noqa: E402
-from src.day19_category_builder import apply_smoothing_kernel, build_smoothing_kernel, build_tr_edges, tr_token_overlap  # noqa: E402
+from src.day19_category_builder import build_tr_edges, tr_token_overlap  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +239,20 @@ def save_qaemb_tokens(qa_matrix: np.ndarray, questions: Sequence[str], qa_file: 
     logger.info("Saved QA question list to %s", questions_out)
 
 
+def _write_json_atomic(path: Path, payload: Dict) -> None:
+    """Write JSON atomically to reduce checkpoint corruption on interruption."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w") as fh:
+        json.dump(payload, fh, indent=2)
+    tmp.replace(path)
+
+
+def _questions_sha1(questions: Sequence[str]) -> str:
+    text = "\n".join(map(str, questions))
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()
+
+
 def maybe_plot_preview(
     canonical_df: pd.DataFrame,
     tr_df: pd.DataFrame,
@@ -291,19 +306,22 @@ def run_qaemb_timeseries(
         raise ValueError("Subject and story must be provided via arguments or config.")
 
     qa_cfg = cfg.get("qa_emb", {}) or {}
-    qa_questions_rel = qa_cfg.get("questions_path", "configs/qaemb_questions.json")
+    qa_questions_rel = qa_cfg.get("questions_path", "configs/qaemb_all_questions.json")
+    # qa_questions_rel = qa_cfg.get("questions_path", "configs/qaemb_questions.json")
     qa_checkpoint = qa_cfg.get("checkpoint", "meta-llama/Meta-Llama-3-8B-Instruct")
     context_mode = str(qa_cfg.get("context_mode", "ngram")).lower()
-    context_ngram = int(qa_cfg.get("ngram", 10))
+    context_ngram = int(qa_cfg.get("ngram", qa_cfg.get("ngram_size", 10)))
     time_anchor = str(qa_cfg.get("time_anchor", "onset")).lower()
     qa_use_cache = bool(qa_cfg.get("use_cache", True))
     seconds_bin_width = float(qa_cfg.get("seconds_bin_width", 0.05))
-    smoothing_seconds = float(qa_cfg.get("smoothing_seconds", 1.0))
-    smoothing_method = qa_cfg.get("smoothing_method", "moving_average")
-    gaussian_sigma_seconds = float(qa_cfg.get("gaussian_sigma_seconds", 0.5 * smoothing_seconds))
-    smoothing_pad_mode = qa_cfg.get("smoothing_pad_mode", "reflect")
+    # Kept for backward-compatible config parsing; no smoothing/interpolation is applied.
+    smoothing_seconds = float(qa_cfg.get("smoothing_seconds", 0.0))
+    smoothing_method = "none"
+    gaussian_sigma_seconds = None
+    smoothing_pad_mode = "none"
     save_outputs_flag = bool(qa_cfg.get("save_outputs", True))
     batch_size = int(qa_cfg.get("batch_size", 128))
+    pipeline_batch_size = int(os.environ.get("QAEMB_PIPELINE_BATCH_SIZE", qa_cfg.get("pipeline_batch_size", 8)))
     hf_token = qa_cfg.get("hf_token")
     if context_mode not in {"ngram"}:
         raise ValueError(f"Unsupported qa_emb.context_mode: {context_mode} (only 'ngram' is supported)")
@@ -359,57 +377,26 @@ def run_qaemb_timeseries(
     qa_root.mkdir(parents=True, exist_ok=True)
     qa_file = qa_root / f"{story}_qaemb_tokens.npy"
     qa_questions_out = qa_root / f"{story}_qaemb_questions.json"
+    qa_partial_file = qa_root / f"{story}_qaemb_tokens.partial.npy"
+    qa_progress_file = qa_root / f"{story}_qaemb_tokens.partial.progress.json"
+    expected_tokens = len(token_df)
+    expected_shape = (expected_tokens, len(QA_QUESTIONS))
+    questions_sha1 = _questions_sha1(QA_QUESTIONS)
 
     qa_matrix = None
     if qa_file.exists():
         cached = np.load(qa_file)
-        if cached.shape == (len(token_df), len(QA_QUESTIONS)):
+        if cached.shape == expected_shape:
             qa_matrix = cached
             logger.info("Loaded cached QA embeddings from %s", qa_file)
+            if qa_partial_file.exists():
+                qa_partial_file.unlink()
+            if qa_progress_file.exists():
+                qa_progress_file.unlink()
         else:
-            warnings.warn(f"Cached QA embeddings had shape {cached.shape}; expected {(len(token_df), len(QA_QUESTIONS))}. Recomputing.")
+            warnings.warn(f"Cached QA embeddings had shape {cached.shape}; expected {expected_shape}. Recomputing.")
 
     if qa_matrix is None:
-        try:
-            QAEmb = load_QAEmb_without_imodelsx_init()
-        except ImportError as exc:  # pragma: no cover - dependency managed externally
-            logger.error("imodelsx is required for QAEmb encoding. Install it in the cluster environment.")
-            raise
-        embedder = QAEmb(
-            questions=QA_QUESTIONS,
-            checkpoint=qa_checkpoint,
-            use_cache=qa_use_cache,
-        )
-        # --- Force ultra-short deterministic outputs to avoid CUDA OOM ---
-        import functools, inspect
-
-        # imodelsx calls a HF text-generation pipeline under the hood.
-        # We hard-cap generation to 1 token ("Yes"/"No") to slash memory.
-        llm_sig = inspect.signature(embedder.llm.__call__)
-        forced = {}
-        for k, v in [
-            ("max_new_tokens", 1),
-            ("do_sample", False),
-            ("temperature", 0.0),
-            ("top_p", 1.0),
-            ("num_return_sequences", 1),
-            ("return_full_text", False),
-        ]:
-            if k in llm_sig.parameters:
-                forced[k] = v
-        if forced:
-            embedder.llm = functools.partial(embedder.llm, **forced)
-            logger.info("Forced LLM kwargs: %s", forced)
-
-        # Make sure we don't accidentally batch inside the HF pipeline
-        try:
-            pipe_sig = inspect.signature(embedder.llm.pipeline_.__call__)
-            if "batch_size" in pipe_sig.parameters:
-                embedder.llm.pipeline_.batch_size = 1
-        except Exception:
-            pass
-
-        expected_tokens = len(token_df)
         _, examples = build_ngram_contexts(word_events, context_ngram, use="previous")
         logger.info(
             "Built ngram contexts: %s tokens, ngram=%s, time_anchor=%s",
@@ -420,18 +407,124 @@ def run_qaemb_timeseries(
         if len(examples) != expected_tokens:
             raise ValueError(f"Context/example count mismatch: got {len(examples)} examples, expected {expected_tokens} tokens.")
 
-        qa_rows = []
-        for start in range(0, len(examples), batch_size):
-            batch = examples[start : start + batch_size]
-            emb = embedder(batch)
-            qa_rows.append(np.asarray(emb, dtype=float))
-        qa_matrix = np.vstack(qa_rows) if qa_rows else np.empty((0, len(QA_QUESTIONS)), dtype=float)
+        progress_payload = {
+            "subject": subject,
+            "story": story,
+            "rows_completed": 0,
+            "shape": [expected_shape[0], expected_shape[1]],
+            "n_tokens": expected_shape[0],
+            "n_questions": expected_shape[1],
+            "questions_sha1": questions_sha1,
+            "checkpoint": qa_checkpoint,
+            "batch_size": batch_size,
+            "pipeline_batch_size": pipeline_batch_size,
+        }
+
+        checkpoint_matrix = None
+        resume_from = 0
+        if qa_partial_file.exists() and qa_progress_file.exists():
+            try:
+                progress_state = json.loads(qa_progress_file.read_text())
+                state_shape = tuple(progress_state.get("shape", []))
+                state_rows = int(progress_state.get("rows_completed", 0))
+                state_ok = (
+                    state_shape == expected_shape
+                    and progress_state.get("questions_sha1") == questions_sha1
+                    and progress_state.get("checkpoint") == qa_checkpoint
+                )
+                if state_ok:
+                    checkpoint_matrix = np.lib.format.open_memmap(qa_partial_file, mode="r+")
+                    if checkpoint_matrix.shape != expected_shape:
+                        raise ValueError(f"Partial checkpoint shape mismatch: {checkpoint_matrix.shape} vs {expected_shape}")
+                    resume_from = min(max(state_rows, 0), expected_tokens)
+                    progress_payload["rows_completed"] = resume_from
+                    logger.info(
+                        "Resuming QAEmb from checkpoint: %s/%s rows completed (%s)",
+                        resume_from,
+                        expected_tokens,
+                        qa_partial_file,
+                    )
+                else:
+                    warnings.warn("Ignoring incompatible QAEmb partial checkpoint; starting fresh.")
+            except Exception as exc:
+                warnings.warn(f"Failed to load partial QAEmb checkpoint ({exc}); starting fresh.")
+
+        if checkpoint_matrix is None:
+            checkpoint_matrix = np.lib.format.open_memmap(qa_partial_file, mode="w+", dtype=np.float32, shape=expected_shape)
+            logger.info("Initialized QAEmb checkpoint matrix: %s", qa_partial_file)
+            _write_json_atomic(qa_progress_file, progress_payload)
+
+        if resume_from < expected_tokens:
+            try:
+                QAEmb = load_QAEmb_without_imodelsx_init()
+            except ImportError as exc:  # pragma: no cover - dependency managed externally
+                logger.error("imodelsx is required for QAEmb encoding. Install it in the cluster environment.")
+                raise
+            embedder = QAEmb(
+                questions=QA_QUESTIONS,
+                checkpoint=qa_checkpoint,
+                use_cache=qa_use_cache,
+            )
+            # --- Force ultra-short deterministic outputs to avoid CUDA OOM ---
+            import functools, inspect
+
+            # imodelsx calls a HF text-generation pipeline under the hood.
+            # We hard-cap generation to 1 token ("Yes"/"No") to slash memory.
+            llm_sig = inspect.signature(embedder.llm.__call__)
+            forced = {}
+            for k, v in [
+                ("max_new_tokens", 1),
+                ("do_sample", False),
+                ("temperature", 0.0),
+                ("top_p", 1.0),
+                ("num_return_sequences", 1),
+                ("return_full_text", False),
+            ]:
+                if k in llm_sig.parameters:
+                    forced[k] = v
+            if forced:
+                embedder.llm = functools.partial(embedder.llm, **forced)
+                logger.info("Forced LLM kwargs: %s", forced)
+
+            # Increase HF pipeline throughput for question-wise generation.
+            try:
+                pipe_sig = inspect.signature(embedder.llm.pipeline_.__call__)
+                if "batch_size" in pipe_sig.parameters:
+                    embedder.llm.pipeline_.batch_size = pipeline_batch_size
+                    logger.info("Set HF pipeline batch_size=%s", pipeline_batch_size)
+            except Exception:
+                pass
+
+            for start in range(resume_from, len(examples), batch_size):
+                batch = examples[start : start + batch_size]
+                emb = np.asarray(embedder(batch), dtype=np.float32)
+                if emb.ndim == 1:
+                    emb = emb[None, :]
+                expected_batch_shape = (len(batch), len(QA_QUESTIONS))
+                if emb.shape != expected_batch_shape:
+                    raise ValueError(f"Unexpected batch embedding shape {emb.shape}; expected {expected_batch_shape}")
+                checkpoint_matrix[start : start + len(batch)] = emb
+                checkpoint_matrix.flush()
+                done = start + len(batch)
+                progress_payload["rows_completed"] = done
+                _write_json_atomic(qa_progress_file, progress_payload)
+                logger.info("Checkpointed QAEmb rows %s/%s (%.1f%%)", done, expected_tokens, 100.0 * done / max(expected_tokens, 1))
+        else:
+            logger.info("QAEmb checkpoint already complete (%s rows). Finalizing outputs.", expected_tokens)
+
+        checkpoint_matrix.flush()
+        qa_matrix = np.asarray(checkpoint_matrix, dtype=np.float32)
+        del checkpoint_matrix
         save_qaemb_tokens(qa_matrix, QA_QUESTIONS, qa_file, qa_questions_out)
+        if qa_partial_file.exists():
+            qa_partial_file.unlink()
+        if qa_progress_file.exists():
+            qa_progress_file.unlink()
     else:
         if not qa_questions_out.exists():
             qa_questions_out.parent.mkdir(parents=True, exist_ok=True)
             qa_questions_out.write_text(json.dumps(QA_QUESTIONS, indent=2))
-    assert qa_matrix.shape == (len(token_df), len(QA_QUESTIONS)), "QA matrix shape mismatch."
+    assert qa_matrix.shape == expected_shape, "QA matrix shape mismatch."
     logger.info("qa_matrix shape: %s", qa_matrix.shape)
 
     tr_edges = build_tr_edges(story_events, TR)
@@ -458,42 +551,25 @@ def run_qaemb_timeseries(
     token_times = np.asarray(anchor_times, dtype=float)
     qa_columns = [f"qa_q{j:03d}" for j in range(len(QA_QUESTIONS))]
 
-    # Resample irregular word-time QA to TR grid directly.
-    tr_values_raw = _resample_irregular_to_edges(token_times, qa_matrix, tr_edges)
-    smoothing_kernel = build_smoothing_kernel(
-        TR,
-        smoothing_seconds,
-        method=smoothing_method,
-        gaussian_sigma_seconds=gaussian_sigma_seconds,
-    )
-    smoothing_applied = smoothing_kernel.size > 1
-    if tr_values_raw.size and smoothing_applied:
-        tr_values_smoothed = apply_smoothing_kernel(tr_values_raw, smoothing_kernel, pad_mode=smoothing_pad_mode)
-    else:
-        tr_values_smoothed = tr_values_raw.copy()
+    logger.info("Exporting raw QAEmb outputs with step mapping to TR bins (no interpolation, no smoothing).")
+    tr_values = _sample_tokens_to_edges_step(token_times, qa_matrix, tr_edges)
+    smoothing_applied = False
 
-    # Canonical seconds output now mirrors the TR grid to avoid sparse micro-bins.
+    # Canonical seconds output mirrors the TR grid.
     canonical_edges = tr_edges
-    canonical_df_raw = pd.DataFrame(
+    canonical_df_selected = pd.DataFrame(
         {
             "bin_index": np.arange(len(canonical_edges) - 1, dtype=int),
             "start_sec": canonical_edges[:-1],
             "end_sec": canonical_edges[1:],
         }
     )
-    canonical_df_smoothed = canonical_df_raw.copy()
     for j, col in enumerate(qa_columns):
-        canonical_df_raw[col] = tr_values_raw[:, j]
-        canonical_df_smoothed[col] = tr_values_smoothed[:, j]
-    canonical_df_selected = canonical_df_smoothed if smoothing_applied else canonical_df_raw
+        canonical_df_selected[col] = tr_values[:, j]
 
-    base_df = pd.DataFrame({"tr_index": np.arange(len(tr_edges) - 1, dtype=int), "start_sec": tr_edges[:-1], "end_sec": tr_edges[1:]})
-    tr_df_raw = base_df.copy()
-    tr_df_smoothed = base_df.copy()
+    tr_df_selected = pd.DataFrame({"tr_index": np.arange(len(tr_edges) - 1, dtype=int), "start_sec": tr_edges[:-1], "end_sec": tr_edges[1:]})
     for j, col in enumerate(qa_columns):
-        tr_df_raw[col] = tr_values_raw[:, j]
-        tr_df_smoothed[col] = tr_values_smoothed[:, j]
-    tr_df_selected = tr_df_smoothed if smoothing_applied else tr_df_raw
+        tr_df_selected[col] = tr_values[:, j]
 
     logger.info(
         "canonical_matrix shape: %s, tr_matrix shape: %s",
@@ -528,33 +604,30 @@ def run_qaemb_timeseries(
         canonical_csv = canonical_root / "qaemb_timeseries_seconds.csv"
         canonical_df_selected.to_csv(canonical_csv, index=False)
         outputs["canonical_csv"] = canonical_csv
-        if smoothing_applied:
-            canonical_raw_csv = canonical_root / "qaemb_timeseries_seconds_raw.csv"
-            canonical_df_raw.to_csv(canonical_raw_csv, index=False)
-            outputs["canonical_csv_raw"] = canonical_raw_csv
-
         tr_csv = output_root / "qaemb_timeseries.csv"
         tr_df_selected.to_csv(tr_csv, index=False)
         outputs["tr_csv"] = tr_csv
-        if smoothing_applied:
-            tr_raw_csv = output_root / "qaemb_timeseries_raw.csv"
-            tr_df_raw.to_csv(tr_raw_csv, index=False)
-            outputs["tr_csv_raw"] = tr_raw_csv
 
         meta = {
             "subject": subject,
             "story": story,
             "tr_seconds": TR,
             "seconds_bin_width": seconds_bin_width,
-            "smoothing_seconds": smoothing_seconds,
+            "smoothing_seconds": 0.0,
             "smoothing_method": smoothing_method,
             "gaussian_sigma_seconds": gaussian_sigma_seconds,
             "smoothing_pad_mode": smoothing_pad_mode,
+            "smoothing_applied": smoothing_applied,
+            "resample_method": "step_previous",
+            "postprocess": "none",
             "questions_path": str(questions_path),
             "checkpoint": qa_checkpoint,
             "n_questions": len(QA_QUESTIONS),
             "context_mode": context_mode,
             "context_ngram": context_ngram,
+            "pipeline_batch_size": pipeline_batch_size,
+            "token_checkpointing": "batch_rows",
+            "token_checkpoint_rows": batch_size,
             "time_anchor": time_anchor,
             "n_tokens": len(token_df),
             "qa_abbreviations": qa_abbrevs,
@@ -611,8 +684,8 @@ def _validate_outputs(
         raise ValueError(f"Validation failed ({mode}): NaNs detected in aggregated QAEmb values.")
 
 
-def _resample_irregular_to_edges(token_times: np.ndarray, token_values: np.ndarray, target_edges: np.ndarray) -> np.ndarray:
-    """Resample irregular QAEmb values to target bin edges using linear interpolation on bin centers."""
+def _sample_tokens_to_edges_step(token_times: np.ndarray, token_values: np.ndarray, target_edges: np.ndarray) -> np.ndarray:
+    """Map token-level QA outputs to edge bins via step sampling on bin centers (previous-token hold)."""
     if token_values.size == 0:
         return np.empty((len(target_edges) - 1, 0), dtype=float)
     if token_times.ndim != 1:
@@ -621,14 +694,13 @@ def _resample_irregular_to_edges(token_times: np.ndarray, token_values: np.ndarr
         raise ValueError("token_times and token_values length mismatch")
     if token_times.size == 0:
         raise ValueError("token_times is empty")
-    order = np.argsort(token_times)
+    order = np.argsort(token_times, kind="stable")
     times_sorted = token_times[order]
     values_sorted = token_values[order]
     centers = 0.5 * (target_edges[:-1] + target_edges[1:])
-    out = np.empty((centers.size, token_values.shape[1]), dtype=float)
-    for j in range(token_values.shape[1]):
-        out[:, j] = np.interp(centers, times_sorted, values_sorted[:, j], left=values_sorted[0, j], right=values_sorted[-1, j])
-    return out
+    idx = np.searchsorted(times_sorted, centers, side="right") - 1
+    idx = np.clip(idx, 0, len(times_sorted) - 1)
+    return values_sorted[idx].astype(float, copy=True)
 
 
 def main() -> None:

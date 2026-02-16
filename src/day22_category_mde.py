@@ -32,6 +32,41 @@ def make_lag_dict(series: pd.Series, max_lag: int) -> Dict[int, pd.Series]:
     return {lag: series.shift(lag).iloc[max_lag:].reset_index(drop=True) for lag in range(max_lag + 1)}
 
 
+def build_roi_lag_store(
+    roi_matrix: np.ndarray,
+    max_lag: int,
+    *,
+    prefix: str = "roi",
+) -> Tuple[List[str], Dict[str, Dict[int, pd.Series]]]:
+    roi_matrix = np.asarray(roi_matrix, dtype=float)
+    if roi_matrix.ndim != 2:
+        raise ValueError(f"Expected 2D predictor matrix, got shape {roi_matrix.shape}.")
+    roi_cols = [f"{prefix}_{idx}" for idx in range(roi_matrix.shape[1])]
+    lag_store: Dict[str, Dict[int, pd.Series]] = {}
+    for idx, col in enumerate(roi_cols):
+        series = pd.Series(roi_matrix[:, idx])
+        lag_store[col] = make_lag_dict(series, max_lag)
+    return roi_cols, lag_store
+
+
+def build_roi_lagged_features(
+    roi_cols: Sequence[str],
+    roi_lag_store: Dict[str, Dict[int, pd.Series]],
+    max_lag: int,
+) -> Dict[str, np.ndarray]:
+    lagged_features: Dict[str, np.ndarray] = {}
+    for col in roi_cols:
+        store = roi_lag_store.get(col)
+        if store is None:
+            continue
+        for lag in range(max_lag + 1):
+            series = store.get(lag)
+            if series is None:
+                continue
+            lagged_features[f"{col}_lag{lag}"] = series.to_numpy(dtype=float)
+    return lagged_features
+
+
 def make_splits(n_samples: int, *, train_frac: float, val_frac: float) -> Dict[str, Tuple[int, int]]:
     train_end = max(1, int(np.floor(n_samples * train_frac)))
     val_span = max(1, int(np.floor(n_samples * val_frac)))
@@ -116,7 +151,8 @@ def plot_time_series_and_ranking(
     top_series: List[Tuple[str, float, np.ndarray]],
     target_name: str,
     top_n_plot: int,
-    save_scatter: bool,
+    plot_ranking: bool = True,
+    plot_scatter: bool = True,
     plt_module=None,
 ) -> None:
     if plt_module is None or not top_series:
@@ -164,7 +200,7 @@ def plot_time_series_and_ranking(
             alpha=0.45,
         )
 
-    ax.set_title(f"MDE – {subject} / {story}: Target vs ROI predictors")
+    ax.set_title(f"MDE – {subject} / {story}: Target vs predictor variables")
     ax.set_xlabel("Trimmed index")
     ax.set_ylabel("Z-scored value")
     ax.grid(alpha=0.3)
@@ -210,26 +246,27 @@ def plot_time_series_and_ranking(
         fig_extra.savefig(detail_path, dpi=200)
         plt_module.close(fig_extra)
 
-    names = [item[0] for item in top_series]
-    rho_vals = [item[1] for item in top_series]
-    colors = [color_map.get(name, "#999999") for name in names]
+    if plot_ranking:
+        names = [item[0] for item in top_series]
+        rho_vals = [item[1] for item in top_series]
+        colors = [color_map.get(name, "#999999") for name in names]
 
-    fig, ax = plt_module.subplots(figsize=(8.5, 0.45 * len(names) + 2.5))
-    ax.barh(range(len(names)), rho_vals, color=colors)
-    ax.set_yticks(range(len(names)))
-    ax.set_yticklabels(names)
-    ax.invert_yaxis()
-    ax.set_xlabel("rho value")
-    ax.set_title(f"MDE-selected ROI variables ({subject} / {story}, target={target_name})")
-    for idx, val in enumerate(rho_vals):
-        ax.text(val + 0.01, idx, f"{val:.3f}", va="center", fontsize=8)
-    ax.grid(alpha=0.2, axis="x")
-    fig.tight_layout()
-    ranking_path = output_dir / f"mde_{safe_target}_variable_ranking.png"
-    fig.savefig(ranking_path, dpi=200)
-    plt_module.close(fig)
+        fig, ax = plt_module.subplots(figsize=(8.5, 0.45 * len(names) + 2.5))
+        ax.barh(range(len(names)), rho_vals, color=colors)
+        ax.set_yticks(range(len(names)))
+        ax.set_yticklabels(names)
+        ax.invert_yaxis()
+        ax.set_xlabel("rho value")
+        ax.set_title(f"MDE-selected predictor variables ({subject} / {story}, target={target_name})")
+        for idx, val in enumerate(rho_vals):
+            ax.text(val + 0.01, idx, f"{val:.3f}", va="center", fontsize=8)
+        ax.grid(alpha=0.2, axis="x")
+        fig.tight_layout()
+        ranking_path = output_dir / f"mde_{safe_target}_variable_ranking.png"
+        fig.savefig(ranking_path, dpi=200)
+        plt_module.close(fig)
 
-    if save_scatter:
+    if plot_scatter:
         cols = min(3, max(1, len(top_series)))
         rows = int(np.ceil(len(top_series) / cols))
         fig, axes = plt_module.subplots(
@@ -310,8 +347,8 @@ def plot_lag_heatmap(
     ax.set_yticks(range(len(pivot.index)))
     ax.set_yticklabels(pivot.index)
     ax.set_xlabel("Lag")
-    ax.set_ylabel("ROI")
-    ax.set_title(f"MDE ROI-lag importance ({subject}/{story}, target={target_name})")
+    ax.set_ylabel("Predictor")
+    ax.set_title(f"MDE predictor-lag importance ({subject}/{story}, target={target_name})")
     fig.colorbar(im, ax=ax, label="rho")
     fig.tight_layout()
     fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_lag_heatmap.png", dpi=200)
@@ -412,9 +449,10 @@ def plot_residuals(
     mde_columns: Sequence[str],
     lag_store: Dict[str, Dict[int, pd.Series]],
     target_name: str,
+    save_plot: bool = True,
     plt_module=None,
 ) -> Tuple[Dict[str, Dict[str, float]], Optional[np.ndarray]]:
-    if plt_module is None or not mde_columns:
+    if not mde_columns:
         return {"rmse": {}, "rho": {}, "cae": {}}, None
 
     series_list = []
@@ -446,24 +484,26 @@ def plot_residuals(
     y_pred = X @ coefs
     residuals = y - y_pred
 
-    fig, ax = plt_module.subplots(figsize=(12, 4.5))
-    ax.plot(time_axis, residuals, color="#7B1FA2", linewidth=1.4, label="Residual (target - fit)")
-    ax.axhline(0.0, color="black", linewidth=1.0, linestyle="--", alpha=0.6)
+    if save_plot and plt_module is not None:
+        fig, ax = plt_module.subplots(figsize=(12, 4.5))
+        ax.plot(time_axis, residuals, color="#7B1FA2", linewidth=1.4, label="Residual (target - fit)")
+        ax.axhline(0.0, color="black", linewidth=1.0, linestyle="--", alpha=0.6)
 
     spans = [
         ("Train", splits["train"], "#4CAF50"),
         ("Validation", splits["val"], "#FFC107"),
         ("Test", splits["test"], "#F44336"),
     ]
-    shown_labels = set()
-    for label, (start_idx, end_idx), color in spans:
-        if end_idx <= start_idx:
-            continue
-        start_time = time_axis[start_idx]
-        end_time = time_axis[min(end_idx - 1, len(time_axis) - 1)]
-        span_label = label if label not in shown_labels else None
-        ax.axvspan(start_time, end_time, color=color, alpha=0.12, label=span_label)
-        shown_labels.add(label)
+    if save_plot and plt_module is not None:
+        shown_labels = set()
+        for label, (start_idx, end_idx), color in spans:
+            if end_idx <= start_idx:
+                continue
+            start_time = time_axis[start_idx]
+            end_time = time_axis[min(end_idx - 1, len(time_axis) - 1)]
+            span_label = label if label not in shown_labels else None
+            ax.axvspan(start_time, end_time, color=color, alpha=0.12, label=span_label)
+            shown_labels.add(label)
 
     def seg_rmse(start_idx: int, end_idx: int) -> Optional[float]:
         if end_idx <= start_idx:
@@ -519,26 +559,27 @@ def plot_residuals(
         cae_val = seg_cae(start_idx, end_idx)
         if cae_val is not None and np.isfinite(cae_val):
             cae_dict[label.lower()] = cae_val
-    if rmse_lines:
-        ax.text(
-            0.01,
-            0.98,
-            " | ".join(rmse_lines),
-            transform=ax.transAxes,
-            ha="left",
-            va="top",
-            fontsize=9,
-            bbox=dict(facecolor="white", alpha=0.8, edgecolor="none"),
-        )
+    if save_plot and plt_module is not None:
+        if rmse_lines:
+            ax.text(
+                0.01,
+                0.98,
+                " | ".join(rmse_lines),
+                transform=ax.transAxes,
+                ha="left",
+                va="top",
+                fontsize=9,
+                bbox=dict(facecolor="white", alpha=0.8, edgecolor="none"),
+            )
 
-    ax.set_xlabel("Trimmed index")
-    ax.set_ylabel("Residual")
-    ax.set_title(f"Residuals vs time ({subject}/{story}, target={target_name})")
-    ax.legend(loc="upper right")
-    ax.grid(alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_residuals.png", dpi=200)
-    plt_module.close(fig)
+        ax.set_xlabel("Trimmed index")
+        ax.set_ylabel("Residual")
+        ax.set_title(f"Residuals vs time ({subject}/{story}, target={target_name})")
+        ax.legend(loc="upper right")
+        ax.grid(alpha=0.3)
+        fig.tight_layout()
+        fig.savefig(output_dir / f"mde_{sanitize_name(target_name)}_residuals.png", dpi=200)
+        plt_module.close(fig)
 
     return {"rmse": rmse_dict, "rho": rho_dict, "cae": cae_dict}, y_pred
 
@@ -806,24 +847,42 @@ def run_mde_for_pair(
     sample_steps: int = 5,
     plt_module=None,
     use_cae: bool = False,
+    category_df: Optional[pd.DataFrame] = None,
+    roi_matrix: Optional[np.ndarray] = None,
+    roi_prepared: bool = False,
+    roi_cols: Optional[Sequence[str]] = None,
+    roi_lag_store: Optional[Dict[str, Dict[int, pd.Series]]] = None,
+    roi_lagged_features: Optional[Dict[str, np.ndarray]] = None,
+    max_lag_override: Optional[int] = None,
+    plot_ranking: bool = True,
+    plot_scatter: bool = True,
+    do_lag_heatmap: bool = True,
+    do_residuals_plot: bool = True,
+    do_prediction_scatter: bool = True,
 ) -> Dict[str, Any]:
     subject = subject.strip()
     story = story.strip()
 
-    category_dir = features_root / "subjects" / subject / story
-    if not category_dir.exists():
-        raise FileNotFoundError(f"Category directory not found: {category_dir}")
+    if not save_scatter:
+        plot_scatter = False
 
-    full_path = category_dir / "category_timeseries.csv"
-    trimmed_path = category_dir / "category_timeseries_trimmed.csv"
-    if full_path.exists():
-        category_df = pd.read_csv(full_path)
-        source_name = full_path.name
-    elif trimmed_path.exists():
-        category_df = pd.read_csv(trimmed_path)
-        source_name = trimmed_path.name
+    category_dir = features_root / "subjects" / subject / story
+    if category_df is None:
+        if not category_dir.exists():
+            raise FileNotFoundError(f"Category directory not found: {category_dir}")
+
+        full_path = category_dir / "category_timeseries.csv"
+        trimmed_path = category_dir / "category_timeseries_trimmed.csv"
+        if full_path.exists():
+            category_df = pd.read_csv(full_path)
+            source_name = full_path.name
+        elif trimmed_path.exists():
+            category_df = pd.read_csv(trimmed_path)
+            source_name = trimmed_path.name
+        else:
+            raise FileNotFoundError(f"No category time series found under {category_dir}")
     else:
-        raise FileNotFoundError(f"No category time series found under {category_dir}")
+        source_name = "category_timeseries_in_memory"
 
     category_df = category_df.copy()
     if "trim_index" not in category_df.columns:
@@ -839,11 +898,24 @@ def run_mde_for_pair(
     if target_column not in category_cols:
         raise ValueError(f"{target_column!r} is not present in category dataframe.")
 
-    roi_matrix = roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg)
+    if roi_matrix is None:
+        roi_matrix = roi.load_schaefer_timeseries_TR(subject, story, n_parcels, paths_cfg)
+        roi_prepared = True
+    else:
+        roi_matrix = np.asarray(roi_matrix, dtype=float)
+        if not roi_prepared:
+            from src.utils import zscore_per_column
+
+            roi_matrix = zscore_per_column(roi_matrix)
+
     if roi_matrix.size == 0:
         raise ValueError(f"ROI time series empty for {subject}/{story}.")
 
-    common_len = min(len(category_df), roi_matrix.shape[0])
+    category_len = len(category_df)
+    roi_len = roi_matrix.shape[0]
+    common_len = min(category_len, roi_len)
+    if (roi_lag_store is not None or roi_lagged_features is not None) and category_len != roi_len:
+        raise ValueError("Precomputed ROI lag features require category and ROI lengths to match.")
     if common_len <= 2:
         raise ValueError(f"Insufficient samples ({common_len}) for {subject}/{story}.")
 
@@ -855,7 +927,8 @@ def run_mde_for_pair(
     if target_series.isna().any():
         raise ValueError(f"Target {target_column} contains NaNs after filling.")
 
-    roi_cols = [f"roi_{idx}" for idx in range(roi_matrix.shape[1])]
+    if roi_cols is None:
+        roi_cols = [f"roi_{idx}" for idx in range(roi_matrix.shape[1])]
     data_dict: Dict[str, np.ndarray] = {
         "Time": np.arange(1, common_len + 1, dtype=int),
         "target": target_series.astype(float).to_numpy(),
@@ -865,12 +938,19 @@ def run_mde_for_pair(
 
     max_tau = max(tau_grid)
     max_lag = max_tau * (E_cap - 1)
+    if max_lag_override is not None:
+        max_lag = int(max_lag_override)
+    if max_lag < 0:
+        raise ValueError(f"max_lag must be >= 0, got {max_lag}.")
     if common_len <= max_lag + 5:
         raise ValueError(f"Not enough samples ({common_len}) for max lag {max_lag}.")
 
     lag_store: Dict[str, Dict[int, pd.Series]] = {"target": make_lag_dict(base["target"], max_lag)}
-    for col in roi_cols:
-        lag_store[col] = make_lag_dict(base[col], max_lag)
+    if roi_lag_store is None:
+        for col in roi_cols:
+            lag_store[col] = make_lag_dict(base[col], max_lag)
+    else:
+        lag_store.update(roi_lag_store)
 
     time_trim = base["Time"].iloc[max_lag:].reset_index(drop=True)
     target_trim = lag_store["target"][0]
@@ -879,13 +959,10 @@ def run_mde_for_pair(
 
     splits = make_splits(len(time_trim), train_frac=train_frac, val_frac=val_frac)
 
-    lagged_features: Dict[str, np.ndarray] = {}
-    for col in roi_cols:
-        for lag in range(max_lag + 1):
-            series = lag_store[col].get(lag)
-            if series is None:
-                continue
-            lagged_features[f"{col}_lag{lag}"] = series.to_numpy(dtype=float)
+    if roi_lagged_features is None:
+        lagged_features = build_roi_lagged_features(roi_cols, lag_store, max_lag)
+    else:
+        lagged_features = roi_lagged_features
 
     if not lagged_features:
         raise ValueError("No ROI predictors available.")
@@ -1028,6 +1105,7 @@ def run_mde_for_pair(
 
     top_series = collect_top_series(best_output, lag_store, len(target_trim), max_items=top_n_plot)
     roi_variables = [var for var in best_variables if isinstance(var, str) and var.startswith("roi_")]
+    voxel_variables = [var for var in best_variables if isinstance(var, str) and var.startswith("voxel_")]
     plot_time_series_and_ranking(
         output_dir=plots_dir,
         subject=subject,
@@ -1037,17 +1115,19 @@ def run_mde_for_pair(
         top_series=top_series,
         target_name=target_column,
         top_n_plot=top_n_plot,
-        save_scatter=save_scatter,
+        plot_ranking=plot_ranking,
+        plot_scatter=plot_scatter,
         plt_module=plt_module,
     )
-    plot_lag_heatmap(
-        output_dir=plots_dir,
-        subject=subject,
-        story=story,
-        mde_output=best_output,
-        target_name=target_column,
-        plt_module=plt_module,
-    )
+    if do_lag_heatmap:
+        plot_lag_heatmap(
+            output_dir=plots_dir,
+            subject=subject,
+            story=story,
+            mde_output=best_output,
+            target_name=target_column,
+            plt_module=plt_module,
+        )
     full_rho_sequence = rho_array.tolist()
     plot_cumulative_rho(
         output_dir=plots_dir,
@@ -1079,6 +1159,7 @@ def run_mde_for_pair(
         mde_columns=best_variables,
         lag_store=lag_store,
         target_name=target_column,
+        save_plot=do_residuals_plot,
         plt_module=plt_module,
     )
 
@@ -1109,16 +1190,17 @@ def run_mde_for_pair(
             rmse_info=rmse_info_linear,
             plt_module=plt_module,
         )
-        plot_prediction_scatter(
-            output_dir=plots_dir,
-            subject=subject,
-            story=story,
-            target_series=target_trim.to_numpy(dtype=float),
-            prediction_series=y_pred.astype(float),
-            splits=splits,
-            target_name=target_column,
-            plt_module=plt_module,
-        )
+        if do_prediction_scatter:
+            plot_prediction_scatter(
+                output_dir=plots_dir,
+                subject=subject,
+                story=story,
+                target_series=target_trim.to_numpy(dtype=float),
+                prediction_series=y_pred.astype(float),
+                splits=splits,
+                target_name=target_column,
+                plt_module=plt_module,
+            )
 
     prediction_csv: Optional[Path] = None
     if y_pred is not None:
@@ -1165,6 +1247,7 @@ def run_mde_for_pair(
         "top_variables": [item[0] for item in top_series],
         "selected_variables": best_variables,
         "roi_variables": roi_variables,
+        "voxel_variables": voxel_variables,
         "plots_dir": str(plots_dir),
         "candidate_roi_html": str(candidate_html) if candidate_html else None,
         "selection_csv": str(output_csv),
